@@ -9,7 +9,6 @@ install.packages('ggplot2')
 install.packages('readr')
 install.packages('patchwork')
 install.packages('caret')
-install.packages('random forest')
 
 ## open libraries
 library(tidyverse)
@@ -19,4 +18,4 @@ library(ggplot2)
 library(readr)
 library(patchwork)
 library(caret)
-library(randomForest)
+
