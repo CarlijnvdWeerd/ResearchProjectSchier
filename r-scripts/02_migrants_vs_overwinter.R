@@ -50,7 +50,10 @@ factvideo <- read.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vRTzpl8cL
 list(factvideo$Notes)
 
 ringed_info <- observation_data |>
-  filter(bird_code %in% c("Of-CCU/R","Of-HPV/R","Of-JAE/R", "Of-JHM/R","Of-JHY/R","Of-JJV/R","Of-JLO/R","Of-JLU/R","Of-JTN/R","Of-JXM/R","Of-JXN/R","Of-JXY/R","Of-JYL/R","Of-MYV/R","Of-LMN/R","Of-KAH/R","Of-KCY/R", "Of-KET/R","Of-KKH/R","Of-KMC/R", "Of-KMP/R", "Of-KNP/R", "Of-KNX/R", "Of-KMP/R", "Of-KTP/R","Of-KTM/R", "Of-KUL/R", "Of-KUX/R", "Of-KVV/R", "Of-KXM/R", "Of-KYC/R", "Of-LPT/R", "Of-LYK/R", "Of-MJA/R", "Of-MCH/R", "Of-MLC/R", "Of-MTJ/R", "Of-NKE/R", "Of-NUK/R", "Of-NTV/R", "Of-PAE/R", "Of-PKN/r", "Of-PMP/R", "Of-PVK/R", "Of-PLA/R", "Of-KKT/R" )) 
+  filter(bird_code %in% c("Of-CCU/R","Of-KPM/R", "Of-KNX/R", "Of-MCH/R", "Of-KET/R", "Of-LYK/R", "Of-HPV/R", "Of-JLO/R", "Of-KKH/R", "Of-KNP/R", "Of-KTP/R", "Of-KXM/R", "Of-JAE/R", "Of-KMC/R", "Of-JXM/R", "Of-JTN/R", "Of-PAJ/R", "Of-PAE/R", "Of-JTL/R", "Of-JLU/R", "Of-NTV/R", "Of-NUK/R", "Of-KCY/R", "Of-PLA/R", "Of-JVY/R", "Of-JYL/R", "Of-MJA/R", "Of-JHM/R", "Of-KVV/R", "Of-KUX/R", "Of-JLH/R", "Of-PVK/R", "Of-KTE/R", "Of-JHY/R", "Of-MCP/R", "Of-KTM/R", "Of-MLC/R", "Of-KUH/R", "Of-MAU/R", "Of-JNH/R", "Of-JJV/R", "Of-KAH/R", "Of-JXY/R", "Of-NKE/R", "Of-PNL/R", "Of-PMP/R", "Of-KUL/R", "Of-LCT/R", "Of-MYV/R", "Of-KKT/R", "Of-NLY/R", "Of-HNW/R", "Of-JXN/R","Of-LMN/R", "Of-LPT/R", "Of-PKN/R", "Of-HPL/R", "Of-HPT/R", "Of-KMY/R", "Of-KJU/R", "Of-MTJ/R", "Of-PHT/R", "Of-RTH/R", "Of-KKM/R", "Of-NEL/R", "Of-NLJ/R"))
+         
+         
+#  ("Of-CCU/R","Of-HPV/R","Of-JAE/R", "Of-JHM/R","Of-JHY/R","Of-JJV/R","Of-JLO/R","Of-JLU/R","Of-JTN/R","Of-JXM/R","Of-JXN/R","Of-JXY/R","Of-JYL/R","Of-MYV/R","Of-LMN/R","Of-KAH/R","Of-KCY/R", "Of-KET/R","Of-KKH/R","Of-KMC/R", "Of-KMP/R", "Of-KNP/R", "Of-KNX/R", "Of-KMP/R", "Of-KTP/R","Of-KTM/R", "Of-KUL/R", "Of-KUX/R", "Of-KVV/R", "Of-KXM/R", "Of-KYC/R", "Of-LPT/R", "Of-LYK/R", "Of-MJA/R", "Of-MCH/R", "Of-MLC/R", "Of-MTJ/R", "Of-NKE/R", "Of-NUK/R", "Of-NTV/R", "Of-PAE/R", "Of-PKN/r", "Of-PMP/R", "Of-PVK/R", "Of-PLA/R", "Of-KKT/R" )) 
 
 ringed_info <- ringed_info |>
   dplyr::select(bird_code, observation_date, year, category)
