@@ -88,31 +88,3 @@ ggplot2::ggplot(histogram_data, aes(x = year, y = count, fill = category)) +
 
 
 
-histogram_data$category <- factor(histogram_data$category, levels = c("spring_migrants", "breeding", "autumn_migrants", "overwinterers"))
-histogram_data$category <- recode(histogram_data$category,
-                                   spring_migrants = "Spring migrants",
-                                   breeding = "Breeding",
-                                   autumn_migrants = "Autumn migrants",
-                                   overwinterers = "Overwinterers")
-histogram_data$category <- factor(histogram_data$category, levels = c("Spring migrants", "Breeding", "Autumn migrants", "Overwinterers"))
-histogram_data$year <- as.factor(histogram_data$year)
-histogram_data$year <- recode(histogram_data$year,
-                               `2018` = "2018",
-                               `2019` = "2019",
-                               `2020` = "2020",
-                               `2021` = "2021",
-                               `2022` = "2022",
-                               `2023` = "2023")
-histogram_data$year <- factor(histogram_data$year, levels = c("2018", "2019", "2020", "2021", "2022", "2023"))
-histogram_data$category <- factor(histogram_data$category, levels = c("Spring migrants", "Breeding", "Autumn migrants", "Overwinterers"))
-histogram_data$category <- recode(histogram_data$category,
-                                   `Spring migrants` = "Spring migrants",
-                                   `Breeding` = "Breeding",
-                                   `Autumn migrants` = "Autumn migrants",
-                                   `Overwinterers` = "Overwinterers")
-histogram_data$category <- factor(histogram_data$category, levels = c("Spring migrants", "Breeding", "Autumn migrants", "Overwinterers"))
-histogram_data$category <- recode(histogram_data$category,
-                                   `Spring migrants` = "Spring migrants",
-                                   `Breeding` = "Breeding",
-                                   `Autumn migrants` = "Autumn migrants",
-                                   `Overwinterers` = "Overwinterers")
