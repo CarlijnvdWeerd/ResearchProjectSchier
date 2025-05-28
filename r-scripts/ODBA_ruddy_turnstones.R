@@ -179,4 +179,3 @@ fuzzy_joined <- fuzzy_left_join(
          "Collecting_time" = "end_time"),
   match_fun = list(`==`, `>=`, `<=`)
 )
-
