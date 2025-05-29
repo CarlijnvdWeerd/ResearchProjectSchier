@@ -37,6 +37,7 @@ complete_dataset <- complete_dataset |>
 
 complete_dataset |>
   count(Strategy)
+# migrant n=30308, overwinterer n=13444
 
 ##############################################################################
 # Converting dataset to work with duration time, etc
@@ -76,12 +77,14 @@ point_behaviors <- complete_dataset |>
 durations <- durations |>
   dplyr::select(c(Observation_id, Behavior, Duration))
 
+# CAN NOT JOIN DURATION WITH COMPLETE DATASET BECAUSE DURATION OF BEHAVIOUR IS IN A PAIR WHILE IN COMPLETE DATASET IT IS SEPARATE
+
 # Join durations with the complete_dataset
-complete_dataset <- complete_dataset |>
-  left_join(durations, by = c("Observation_id", "Behavior"))
+# complete_dataset <- complete_dataset |>
+#  left_join(durations, by = c("Observation_id", "Behavior"))
 
 # if the duration is NA, then set it to 0
-complete_dataset$Duration[is.na(complete_dataset$Duration)] <- 0
+# complete_dataset$Duration[is.na(complete_dataset$Duration)] <- 0
 
 ###############################################################################
 
