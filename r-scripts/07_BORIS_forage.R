@@ -188,7 +188,7 @@ ggplot(for_walk, aes(x = Week, y = Duration, fill = Strategy)) +
   theme_minimal(base_size = 14)
 
 #Boxplot graph to look at the difference in duration of foraging walking between migrant and overwinterer 
-ggplot(for_walk, aes(x = as.factor(Week), y = Duration, color = Strategy)) +
+p1 <- ggplot(for_walk, aes(x = as.factor(Week), y = Duration, color = Strategy)) +
   geom_boxplot() +
   scale_color_manual(values = c("#FF9999", "#66B3FF")) +
   theme_minimal(base_size = 14) +
@@ -196,6 +196,56 @@ ggplot(for_walk, aes(x = as.factor(Week), y = Duration, color = Strategy)) +
     title = "Foraging walking per Strategy",
     x = "Week",
     y = "Duration (seconds)")
+
+ggsave("foraging_walking_duration_strategy.png", plot = p1, width = 10, height = 6, dpi = 300)
+
+# The graph shows some differences in duration of foraging walking per strategy.
+# So it would be interesting to analyse this further 
+
+m0 <- lm(Duration ~ Strategy, data = for_walk)
+print(m0)
+summary(m0)
+
+m1 <- lm(Duration ~ Week + Strategy, data = for_walk)
+print(m1)
+summary(m1)
+
+m2 <- lm(Duration ~ Week * Strategy, data = for_walk)
+print(m2)
+summary(m2)
+
+anova(m1,m2)
+# The interaction model (m2) is significantly better than the main effects model (m1), indicating that the effect of week on duration depends on the strategy.
+# This suggests that the relationship between week and duration is different for migrants and overwinterers.
+
+anova(m0, m2)
+# So adding Week as an interaction to the strategy makes the model a quite good predictior of the duration of foraging walking. The p-value is ***
+
+
+m3 <- lm(Duration ~ Week * Strategy + Three_letter_code.x, data = for_walk)
+anova(m2, m3) 
+
+# Adding the Three letter code to the model does not make it a better predictive model for the duration of foraging walking.
+
+m4 <- lmer(Duration ~ Week * Strategy + ( 1 | Transect_ID), data = for_walk)
+print(m4)
+summary(m4)
+
+m5 <- lm(Duration ~ Week * Strategy + Tide, data = for_walk)
+anova(m2, m5)
+
+m6 <- lm(Duration ~ Week * Strategy + Habitat, data = for_walk)
+anova(m2, m6)
+
+# Adding Transect_ID, Tide or Habitat does not make it a better predictive model for the duration of foraging walking.
+
+for_walk$pred2<-predict(m2)
+p1 + 
+  geom_line(data = for_walk, aes(y = pred2, col = factor(Week)), linewidth = 1.2) +
+  scale_color_manual(values = RColorBrewer::brewer.pal(12, "Set3"))
+# NEED TO ADAPT GRAPH!
+###############################################################################
+## Looking at different behaviors 
 
 
 

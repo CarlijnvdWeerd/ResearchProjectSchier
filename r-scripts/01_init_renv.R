@@ -10,6 +10,7 @@ install.packages('readr')
 install.packages('patchwork')
 install.packages('caret')
 install.packages('lubridate')
+install.packages('lme4')
 
 ## open libraries
 library(tidyverse)
@@ -20,3 +21,4 @@ library(readr)
 library(patchwork)
 library(caret)
 library(lubridate)
+library(lme4)
