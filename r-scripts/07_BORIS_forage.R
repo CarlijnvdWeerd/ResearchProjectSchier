@@ -178,18 +178,17 @@ for_walk <- for_walk |>
       TRUE ~ NA_real_ ))
 
 
-### I want a boxplot of the for_walk dataframe. I want to see what the duration of behavior is over time of the migrants and overwinterers
-ggplot(for_walk, aes(x = Week, y = Duration, fill = Strategy)) +
-  geom_boxplot() +
-  labs(title = "Duration of Foraging/Walking Behavior Over Time by Strategy",
-       x = "Week",
-       y = "Duration (seconds)") +
-  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
-  theme_minimal(base_size = 14)
-
 #Boxplot graph to look at the difference in duration of foraging walking between migrant and overwinterer 
+
+# Calculate counts per Week and Strategy
+counts <- for_walk %>%
+  group_by(Week, Strategy) %>%
+  summarise(n = n())
+
+# Base boxplot
 p1 <- ggplot(for_walk, aes(x = as.factor(Week), y = Duration, color = Strategy)) +
   geom_boxplot() +
+  geom_jitter(width = 0.2, alpha = 0.5, size = 1) +  # add jittered points
   scale_color_manual(values = c("#FF9999", "#66B3FF")) +
   theme_minimal(base_size = 14) +
   labs(
@@ -197,7 +196,13 @@ p1 <- ggplot(for_walk, aes(x = as.factor(Week), y = Duration, color = Strategy))
     x = "Week",
     y = "Duration (seconds)")
 
-ggsave("foraging_walking_duration_strategy.png", plot = p1, width = 10, height = 6, dpi = 300)
+# Add text labels with counts above boxes
+p2 <- p1 + geom_text(data = counts, aes(x = as.factor(Week), 
+                                        y = max(for_walk$Duration) + 5, 
+                                  label = paste0("n=", n), color = Strategy),
+               position = position_dodge(width = 0.75), size = 4)
+
+
 
 # The graph shows some differences in duration of foraging walking per strategy.
 # So it would be interesting to analyse this further 
@@ -239,13 +244,28 @@ anova(m2, m6)
 
 # Adding Transect_ID, Tide or Habitat does not make it a better predictive model for the duration of foraging walking.
 
-for_walk$pred2<-predict(m2)
-p1 + 
-  geom_line(data = for_walk, aes(y = pred2, col = factor(Week)), linewidth = 1.2) +
-  scale_color_manual(values = RColorBrewer::brewer.pal(12, "Set3"))
-# NEED TO ADAPT GRAPH!
+new_data <- expand.grid(
+  Week = unique(for_walk$Week),
+  Strategy = unique(for_walk$Strategy)
+)
+
+new_data$predicted <- predict(m2, newdata = new_data)
+
+p3 <- p2 +
+  geom_point(data = new_data,
+             aes(x = as.factor(Week), y = predicted, color = Strategy, shape = Strategy),
+             size = 3,
+             position = position_dodge(width = 0.75)) +
+  scale_shape_manual(values = c("migrant" = 17, "overwinterer" = 18)) +
+  scale_color_manual(values = c("migrant" = "#a15454", "overwinterer" = "#3f6f9e"))
+
+p3
+
+ggsave("foraging_walking_duration_strategy.png", plot = p2, width = 13, height = 6, dpi = 300)
+ggsave("foraging_walking_duration_strategy_with_predictions.png", plot = p3, width = 10, height = 6, dpi = 300)
+
 ###############################################################################
-## Looking at different behaviors 
+
 
 
 
