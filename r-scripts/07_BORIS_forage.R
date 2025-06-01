@@ -456,4 +456,144 @@ ggsave("point_behaviors_strategy.png", plot = p10, width = 18, height = 10, dpi 
 
 #################################################################################
 # The same analysis but than for the stage event behaviors
-# I want to 
+# I want to add up the duration per week per behavior per strategy and i also want to add up the Media.duration..s per week. Then i want to divide the duration with the media.duration..s so i end up with duration per week per behavior per strategy that is normalized
+
+# Sum duration per Week, Strategy, Behavior
+behavior_duration <- behaviors |>
+  group_by(Week, Strategy, Behavior) |>
+  summarise(Total_Duration = sum(Duration), .groups = "drop")
+
+# Get total media duration per week
+media_duration_per_week <- behaviors |>
+  distinct(Observation_id, Week, Media.duration..s.) |>
+  group_by(Week) |>
+  summarise(Total_Media_Duration = sum(Media.duration..s.), .groups = "drop")
+
+#  Join and normalize
+stage_behavior_summary <- behavior_duration |>
+  left_join(media_duration_per_week, by = "Week") |>
+  mutate(Normalized_Duration = (Total_Duration / Total_Media_Duration) * 100) 
+
+#  Reorder Week factor (optional)
+stage_behavior_summary$Week <- factor(
+  stage_behavior_summary$Week,
+  levels = c(9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21)
+)
+
+stage_behavior_summary <- stage_behavior_summary |>
+  filter(Behavior %in% c("Walking", "Alert", "Digging", "Routing", "Handling_prey"))
+
+# Plotting the stage behaviors
+p_stage <- ggplot(stage_behavior_summary, aes(x = as.factor(Week), y = Normalized_Duration, fill = Strategy)) +
+  geom_col(position = "dodge", alpha = 0.7) +
+  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Stage Behaviors Counts per Week by Strategy",
+    x = "Week",
+    y = "Normalized Stage Behavior Duration"
+  ) +
+  facet_wrap(~Behavior)
+p_stage
+
+p11 <- ggplot(stage_behavior_summary |> filter(Behavior == "Walking"), aes(x = as.factor(Week), y = Normalized_Duration , fill = Strategy)) +
+  geom_col(position = "dodge", alpha = 0.7) +
+  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Walking per Week by Strategy",
+    x = "Week",
+    y = "Normalized Walking Duration"
+  )
+p11
+
+p12 <- ggplot(stage_behavior_summary |> filter(Behavior == "Alert"), aes(x = as.factor(Week), y = Normalized_Duration , fill = Strategy)) +
+  geom_col(position = "dodge", alpha = 0.7) +
+  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Alert per Week by Strategy",
+    x = "Week",
+    y = "Normalized Alert Duration"
+  )
+p12
+
+p13 <- ggplot(stage_behavior_summary |> filter(Behavior == "Digging"), aes(x = as.factor(Week), y = Normalized_Duration , fill = Strategy)) +
+  geom_col(position = "dodge", alpha = 0.7) +
+  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Digging per Week by Strategy",
+    x = "Week",
+    y = "Normalized Digging Duration"
+  )
+p13
+
+p14 <- ggplot(stage_behavior_summary |> filter(Behavior == "Routing"), aes(x = as.factor(Week), y = Normalized_Duration , fill = Strategy)) +
+  geom_col(position = "dodge", alpha = 0.7) +
+  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Routing per Week by Strategy",
+    x = "Week",
+    y = "Normalized Routing Duration"
+  )
+p14
+
+p15 <- ggplot(stage_behavior_summary |> filter(Behavior == "Handling_prey"), aes(x = as.factor(Week), y = Normalized_Duration , fill = Strategy)) +
+  geom_col(position = "dodge", alpha = 0.7) +
+  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Handling Prey per Week by Strategy",
+    x = "Week",
+    y = "Normalized Handling Prey Duration"
+  )
+p15
+
+p_stage_behavior <- p11 + p12 + p13 + p14 + p15
+p_stage_behavior
+ggsave("stage_behaviors_strategy.png", plot = p_stage_behavior, width = 18, height = 10, dpi = 300)
+
+##### Looking at whether strategy influences duration
+aov(Normalized_Duration ~ Behavior * Strategy, data = stage_behavior_summary)
+summary(aov(Normalized_Duration ~ Behavior * Strategy, data = stage_behavior_summary))
+
+#####
+emmeans_results2 <- emmeans(aov(Normalized_Duration ~ Behavior * Strategy, data = stage_behavior_summary), 
+                           pairwise ~ Strategy | Behavior)
+print(emmeans_results2)
+# Plotting the results
+p16 <- ggplot(stage_behavior_summary, aes(x = Behavior, y = Normalized_Duration, fill = Strategy)) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Normalized Stage Behavior Duration by Strategy",
+    x = "Behavior",
+    y = "Normalized Duration"
+  ) +
+  facet_wrap(~Strategy)
+p16
+
+# I want there to be a "***" above the boxplots of walking of both migrant and overwintering
+p17 <- p16 +
+  geom_text(
+    data = data.frame(Behavior = "Walking", Strategy = "migrant", y = 40, label = "***"),
+    aes(x = Behavior, y = y, label = label, Strategy = Strategy),  
+    inherit.aes = FALSE,
+    vjust = -1,
+    size = 5
+  ) +
+  geom_text(
+    data = data.frame(Behavior = "Walking", Strategy = "overwinterer", y = 40, label = "***"),
+    aes(x = Behavior, y = y, label = label, Strategy = Strategy),  
+    color = "black", 
+    inherit.aes = FALSE,
+    vjust = -1,
+    size = 5
+  ) +
+  expand_limits(y = 45)  
+
+p17
+ggsave("stage_behaviors_strategy_boxplot.png", plot = p17, width = 18, height = 10, dpi = 300)
