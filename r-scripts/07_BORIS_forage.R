@@ -274,7 +274,12 @@ ggsave("foraging_walking_duration_strategy_with_predictions.png", plot = p3, wid
 # Calculate the point behaviours
 point_behaviors <- complete_dataset |>
   filter(Behavior.type == "POINT") |>
-  mutate(Duration = 0.1)
+  mutate(Duration = 0.1) |>
+  filter(!Observation_id %in% c("KET_20.03", "KET.20.03"))
+
+point_behavior_id <- point_behaviors |>
+  group_by(Observation_id, Behavior) |>
+  summarise(Behavior_Count = n(), .groups = "drop")
 
 behavior_counts <- point_behaviors |>
   group_by(Week, Strategy, Behavior) |>
@@ -289,13 +294,13 @@ behavior_summary <- behavior_counts |>
   mutate(Normalized_Behavior_Count = Behavior_Count / Total_Observations)
 
 
-behavior_summary <- point_behaviors |>
-  select(Observation_id, Three_letter_code, Tide, Habitat, 
-         Week, Strategy, Behavior) |>
-  distinct() |>  # ensures one row per behavior per observation
-  group_by(Observation_id, Three_letter_code, Tide, Habitat, 
-           Week, Strategy, Behavior) |>
-  summarise(Total_Counts = n(), .groups = "drop")
+#behavior_summary <- point_behaviors |>
+#  select(Observation_id, Three_letter_code, Tide, Habitat, 
+#         Week, Strategy, Behavior) |>
+#  distinct() |>  # ensures one row per behavior per observation
+#  group_by(Observation_id, Three_letter_code, Tide, Habitat, 
+#           Week, Strategy, Behavior) |>
+#  summarise(Total_Counts = n(), .groups = "drop")
 
 
 behavior_summary$Week <- factor(
@@ -347,8 +352,108 @@ t.test(Normalized_Behavior_Count ~ Strategy, data = subset(behavior_summary, Beh
 #   mean in group migrant mean in group overwinterer 
 # 40.26584                   22.37419 
 
+p5 <- ggplot(behavior_summary |> filter(Behavior == "Surface_pecking"), 
+             aes(x = as.factor(Week), y = Normalized_Behavior_Count, 
+                 fill = Strategy)) +
+  geom_col(position = "dodge", alpha = 0.7) +
+  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Surface pecking Counts per Week by Strategy",
+    x = "Week",
+    y = "Normalized Surface Pecking Count"
+  )
+
+p5
+
+p6 <- ggplot(behavior_summary |> filter(Behavior == "Swallowing"), 
+             aes(x = as.factor(Week), y = Normalized_Behavior_Count, 
+                 fill = Strategy)) +
+  geom_col(position = "dodge", alpha = 0.7) +
+  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Swallowing Counts per Week by Strategy",
+    x = "Week",
+    y = "Normalized Swallowing Count"
+  )
+
+p6
+
+p7 <- ggplot(behavior_summary |> filter(Behavior == "Turning_stuff"), 
+             aes(x = as.factor(Week), y = Normalized_Behavior_Count, 
+                 fill = Strategy)) +
+  geom_col(position = "dodge", alpha = 0.7) +
+  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Turning Counts per Week by Strategy",
+    x = "Week",
+    y = "Normalized Turning Count"
+  )
+
+p7
+
+p_point_behavior <- p4 + p5 + p6 + p7
+p_point_behavior
+
+ggsave("point_forage_stratgy.png", plot = p_point_behavior, width = 18, height = 10, dpi = 300)
+
 ##### Looking at all the different behaviors
 aov(Normalized_Behavior_Count ~ Behavior * Strategy, data = behavior_summary)
 summary(aov(Normalized_Behavior_Count ~ Behavior * Strategy, data = behavior_summary))
 
+# Post-hoc test
+library(emmeans)
+emmeans_results <- emmeans(aov(Normalized_Behavior_Count ~ Behavior * Strategy, data = behavior_summary), 
+                           pairwise ~ Behavior | Strategy)
+print(emmeans_results)
+# Plotting the results
+library(ggplot2)
+behavior_summary$Behavior <- factor(behavior_summary$Behavior, 
+                                     levels = c("Probing", "Surface_pecking", "Swallowing", "Turning_stuff"))
+p8 <- ggplot(behavior_summary, aes(x = Behavior, y = Normalized_Behavior_Count, fill = Strategy)) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Normalized Behavior Counts by Strategy",
+    x = "Behavior",
+    y = "Normalized Count"
+  ) +
+  facet_wrap(~Strategy)
+p8
 
+# I want to also do an emmeans test to compare the strategies for each behavior
+emmeans_results <- emmeans(aov(Normalized_Behavior_Count ~ Behavior * Strategy, data = behavior_summary), 
+                           pairwise ~ Strategy | Behavior)
+print(emmeans_results)
+# Plotting the results
+p9 <- ggplot(behavior_summary, aes(x = Behavior, y = Normalized_Behavior_Count, fill = Strategy)) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Normalized Behavior Counts by Strategy",
+    x = "Behavior",
+    y = "Normalized Count"
+  ) +
+  facet_wrap(~Strategy)
+p9
+
+# I want there to be a "***" above the boxplots of probing of both migrant and overwintering and  "**" above the boxplots of surface_pecking of both migrant and overwintering
+p10 <- p9 +
+  geom_text(data = data.frame(Behavior = "Probing", Strategy = "migrant", y = 52, label = "***"),
+            aes(x = Behavior, y = y, label = label), vjust = -1, size = 5) +
+  geom_text(data = data.frame(Behavior = "Probing", Strategy = "overwinterer", y = 50, label = "***"),
+            aes(x = Behavior, y = y, label = label), vjust = -1, size = 5) +
+  geom_text(data = data.frame(Behavior = "Surface_pecking", Strategy = "migrant", y = 40, label = "**"),
+            aes(x = Behavior, y = y, label = label), vjust = -1, size = 5) +
+  geom_text(data = data.frame(Behavior = "Surface_pecking", Strategy = "overwinterer", y = 40, label = "**"),
+            aes(x = Behavior, y = y, label = label), vjust = -1, size = 5)
+p10
+ggsave("point_behaviors_strategy.png", plot = p10, width = 18, height = 10, dpi = 300)
+
+#################################################################################
+# The same analysis but than for the stage event behaviors
+# I want to 
