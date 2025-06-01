@@ -62,20 +62,17 @@ durations <- left_join(starts, stops,
                        by = c("Observation_id", "Behavior", "pair_id"),
                        suffix = c("_start", "_stop"))
 
-# Calculate the duration
-durations <- durations |>
-  mutate(Duration = Time_stop - Time_start)
-
 # Calculate the point behaviours
 behaviors <- complete_dataset |>
   filter(Behavior.type == "POINT") |>
   mutate(Duration = 0.1)
 
-# if the duration is NA, then set it to 0
-# complete_dataset$Duration[is.na(complete_dataset$Duration)] <- 0
+
+# Calculate the duration
+durations <- durations |>
+  mutate(Duration = Time_stop - Time_start)
 
 ###############################################################################
-str(behaviors)
 str(durations)
 
 behaviors$Duration <- as.numeric(as.character(behaviors$Duration))
@@ -252,20 +249,106 @@ new_data <- expand.grid(
 new_data$predicted <- predict(m2, newdata = new_data)
 
 p3 <- p2 +
-  geom_point(data = new_data,
-             aes(x = as.factor(Week), y = predicted, color = Strategy, shape = Strategy),
+  geom_point(data = new_data %>% filter(Strategy == "migrant"),
+             aes(x = as.factor(Week), y = predicted, shape = Strategy),
+             color = "#c77575",  # Darker migrant color
              size = 3,
              position = position_dodge(width = 0.75)) +
-  scale_shape_manual(values = c("migrant" = 17, "overwinterer" = 18)) +
-  scale_color_manual(values = c("migrant" = "#a15454", "overwinterer" = "#3f6f9e"))
+  geom_point(data = new_data %>% filter(Strategy == "overwinterer"),
+             aes(x = as.factor(Week), y = predicted, shape = Strategy),
+             color = "#5190cf",  # Darker overwinterer color
+             size = 3,
+             position = position_dodge(width = 0.75)) +
+  scale_shape_manual(values = c("migrant" = 17, "overwinterer" = 18))
+
+
 
 p3
 
 ggsave("foraging_walking_duration_strategy.png", plot = p2, width = 13, height = 6, dpi = 300)
-ggsave("foraging_walking_duration_strategy_with_predictions.png", plot = p3, width = 10, height = 6, dpi = 300)
+ggsave("foraging_walking_duration_strategy_with_predictions.png", plot = p3, width = 13, height = 6, dpi = 300)
 
 ###############################################################################
+# Look at surface_pecking per week per strategy in behavior dataframe
+
+# Calculate the point behaviours
+point_behaviors <- complete_dataset |>
+  filter(Behavior.type == "POINT") |>
+  mutate(Duration = 0.1)
+
+behavior_counts <- point_behaviors |>
+  group_by(Week, Strategy, Behavior) |>
+  summarise(Behavior_Count = n(), .groups = "drop")
+
+obs_counts <- point_behaviors |>
+  distinct(Observation_id, Week) |>
+  count(Week, name = "Total_Observations")
+
+behavior_summary <- behavior_counts |>
+  left_join(obs_counts, by = "Week") |>
+  mutate(Normalized_Behavior_Count = Behavior_Count / Total_Observations)
 
 
+behavior_summary <- point_behaviors |>
+  select(Observation_id, Three_letter_code, Tide, Habitat, 
+         Week, Strategy, Behavior) |>
+  distinct() |>  # ensures one row per behavior per observation
+  group_by(Observation_id, Three_letter_code, Tide, Habitat, 
+           Week, Strategy, Behavior) |>
+  summarise(Total_Counts = n(), .groups = "drop")
+
+
+behavior_summary$Week <- factor(
+  behavior_summary$Week,
+  levels = c(9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21)
+)
+
+p4 <- ggplot(behavior_summary |> filter(Behavior == "Probing"), 
+                   aes(x = as.factor(Week), y = Normalized_Behavior_Count, 
+                       fill = Strategy)) +
+  geom_col(position = "dodge", alpha = 0.7) +
+  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Probing Counts per Week by Strategy",
+    x = "Week",
+    y = "Normalized Probing Count"
+  )
+
+p4
+
+
+## making models to understand the trend of the probing 
+m7 <- lm(Normalized_Behavior_Count ~ Strategy, data = behavior_summary)
+print(m7)
+summary(m7)
+
+m8 <- lm(Normalized_Behavior_Count ~ Week + Strategy, data = behavior_summary)
+print(m8)
+summary(m8)
+anova(m7, m8)
+
+m9 <- lm(Normalized_Behavior_Count ~ Week * Strategy, data = behavior_summary)
+print(m9)
+summary(m9)
+anova(m8, m9)
+
+anova(m7,m9)
+
+t.test(Normalized_Behavior_Count ~ Strategy, data = subset(behavior_summary, Behavior == "Probing"))
+
+# Welch Two Sample t-test
+# data:  Normalized_Behavior_Count by Strategy
+# t = 3.3362, df = 16.634, p-value = 0.004008
+# alternative hypothesis: true difference in means between group migrant and group  overwinterer is not equal to 0
+#95 percent confidence interval:
+#  6.558003 29.225298
+# sample estimates:
+#   mean in group migrant mean in group overwinterer 
+# 40.26584                   22.37419 
+
+##### Looking at all the different behaviors
+aov(Normalized_Behavior_Count ~ Behavior * Strategy, data = behavior_summary)
+summary(aov(Normalized_Behavior_Count ~ Behavior * Strategy, data = behavior_summary))
 
 
