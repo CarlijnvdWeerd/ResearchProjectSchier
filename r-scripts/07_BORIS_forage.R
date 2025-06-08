@@ -103,7 +103,7 @@ behaviors <- behaviors |> bind_rows(
 
 # Sort out
 behaviors <- behaviors |>
-    arrange(Observation_id) |>
+    arrange(Three_letter_code) |>
     dplyr::select(Observation_id, Media.duration..s., Behavior,
                   Time,  Week, Date.x, Transect_ID, 
                   Three_letter_code, Tide, Habitat, Social_behavior,
@@ -200,7 +200,7 @@ p2 <- p1 + geom_text(data = counts, aes(x = as.factor(Week),
                position = position_dodge(width = 0.75), size = 4)
 
 
-
+p2
 # The graph shows some differences in duration of foraging walking per strategy.
 # So it would be interesting to analyse this further 
 
@@ -239,6 +239,9 @@ anova(m2, m5)
 m6 <- lm(Duration ~ Week * Strategy + Habitat, data = for_walk)
 anova(m2, m6)
 
+m7 <- lmer(Duration ~ Week * Strategy + (1 | Three_letter_code.x), data = for_walk)
+summary (m7)
+
 # Adding Transect_ID, Tide or Habitat does not make it a better predictive model for the duration of foraging walking.
 
 new_data <- expand.grid(
@@ -276,22 +279,29 @@ point_behaviors <- complete_dataset |>
   filter(Behavior.type == "POINT") |>
   mutate(Duration = 0.1) |>
   filter(!Observation_id %in% c("KET_20.03", "KET.20.03"))
+## Video of KET on 20 03 is out of proportion in comparison of the other video's of that day but also over the past time.
 
 point_behavior_id <- point_behaviors |>
-  group_by(Observation_id, Behavior) |>
+  group_by(Three_letter_code, Behavior, Strategy, Week, Tide, Duration, Habitat, Transect_ID, Date.x, Media.duration..s.) |>
   summarise(Behavior_Count = n(), .groups = "drop")
 
-behavior_counts <- point_behaviors |>
-  group_by(Week, Strategy, Behavior) |>
-  summarise(Behavior_Count = n(), .groups = "drop")
+#behavior_counts <- point_behaviors |>
+#  group_by(Week, Strategy, Behavior) |>
+#  summarise(Behavior_Count = n(), .groups = "drop")
 
-obs_counts <- point_behaviors |>
-  distinct(Observation_id, Week) |>
-  count(Week, name = "Total_Observations")
+#obs_counts <- point_behaviors |>
+#  distinct(Observation_id, Week) |>
+#  count(Week, name = "Total_Observations")
 
-behavior_summary <- behavior_counts |>
-  left_join(obs_counts, by = "Week") |>
-  mutate(Normalized_Behavior_Count = Behavior_Count / Total_Observations)
+# Total video duration per week and strategy
+media_duration_per_week_strategy <- complete_dataset |>
+  distinct(Observation_id, Week, Strategy, Media.duration..s.) |>
+  group_by(Week, Strategy) |>
+  summarise(Total_Media_Duration = sum(Media.duration..s.), .groups = "drop")
+
+point_behavior_id <- point_behavior_id |>
+  mutate(Behavior_Duration = Behavior_Count * 0.1) |>
+  mutate(Behavior_Rate = Behavior_Duration / Media.duration..s.)
 
 
 #behavior_summary <- point_behaviors |>
@@ -303,93 +313,99 @@ behavior_summary <- behavior_counts |>
 #  summarise(Total_Counts = n(), .groups = "drop")
 
 
-behavior_summary$Week <- factor(
-  behavior_summary$Week,
+point_behavior_id$Week <- factor(
+  point_behavior_id$Week,
   levels = c(9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21)
 )
 
-p4 <- ggplot(behavior_summary |> filter(Behavior == "Probing"), 
-                   aes(x = as.factor(Week), y = Normalized_Behavior_Count, 
+p4 <- ggplot(point_behavior_id |> filter(Behavior == "Probing"), 
+                   aes(x = as.factor(Week), y = Behavior_Rate, 
                        fill = Strategy)) +
-  geom_col(position = "dodge", alpha = 0.7) +
+  geom_col(position = position_dodge(width = 0.9)) + 
   scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
   theme_minimal(base_size = 14) +
   labs(
-    title = "Probing Counts per Week by Strategy",
+    title = "Probing Rate per Week by Strategy",
     x = "Week",
-    y = "Normalized Probing Count"
+    y = "Probingm Rate"
   )
 
 p4
 
 
 ## making models to understand the trend of the probing 
-m7 <- lm(Normalized_Behavior_Count ~ Strategy, data = behavior_summary)
+m7 <- lm(Behavior_Rate ~ Strategy, data = subset(point_behavior_id, Behavior == "Probing"))
 print(m7)
 summary(m7)
 
-m8 <- lm(Normalized_Behavior_Count ~ Week + Strategy, data = behavior_summary)
+m8 <- lm(Behavior_Rate ~ Week + Strategy, data = subset(point_behavior_id, Behavior == "Probing"))
 print(m8)
 summary(m8)
+# Week 16 migrants and overwinterers are significantly different from each other
 anova(m7, m8)
 
-m9 <- lm(Normalized_Behavior_Count ~ Week * Strategy, data = behavior_summary)
+m9 <- lm(Behavior_Rate ~ Week * Strategy, data = subset(point_behavior_id, Behavior == "Probing"))
 print(m9)
 summary(m9)
 anova(m8, m9)
 
 anova(m7,m9)
 
-t.test(Normalized_Behavior_Count ~ Strategy, data = subset(behavior_summary, Behavior == "Probing"))
+m10 <- lmer(Behavior_Rate ~ Week * Strategy + (1 | Three_letter_code), 
+                  data = subset(point_behavior_id, Behavior == "Probing"))
+summary(m10)
 
-# Welch Two Sample t-test
-# data:  Normalized_Behavior_Count by Strategy
-# t = 3.3362, df = 16.634, p-value = 0.004008
-# alternative hypothesis: true difference in means between group migrant and group  overwinterer is not equal to 0
+t.test(Behavior_Rate ~ Strategy, data = subset(behavior_summary, Behavior == "Probing"))
+
+#Welch Two Sample t-test
+
+#data:  Behavior_Rate by Strategy
+#t = -0.12399, df = 17.911, p-value = 0.9027
+#alternative hypothesis: true difference in means between group migrant and group #overwinterer is not equal to 0
 #95 percent confidence interval:
-#  6.558003 29.225298
-# sample estimates:
-#   mean in group migrant mean in group overwinterer 
-# 40.26584                   22.37419 
+#  -0.02024615  0.01799037
+#sample estimates:
+#  mean in group migrant mean in group overwinterer 
+#0.04864448                 0.04977237 
 
 p5 <- ggplot(behavior_summary |> filter(Behavior == "Surface_pecking"), 
-             aes(x = as.factor(Week), y = Normalized_Behavior_Count, 
+             aes(x = as.factor(Week), y = Behavior_Rate, 
                  fill = Strategy)) +
-  geom_col(position = "dodge", alpha = 0.7) +
+  geom_col(position = position_dodge(width = 0.9)) +
   scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
   theme_minimal(base_size = 14) +
   labs(
-    title = "Surface pecking Counts per Week by Strategy",
+    title = "Surface pecking Rate per Week by Strategy",
     x = "Week",
-    y = "Normalized Surface Pecking Count"
+    y = "Surface Pecking Rate"
   )
 
 p5
 
 p6 <- ggplot(behavior_summary |> filter(Behavior == "Swallowing"), 
-             aes(x = as.factor(Week), y = Normalized_Behavior_Count, 
+             aes(x = as.factor(Week), y = Behavior_Rate, 
                  fill = Strategy)) +
-  geom_col(position = "dodge", alpha = 0.7) +
+  geom_col(position = position_dodge(width = 0.9)) +
   scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
   theme_minimal(base_size = 14) +
   labs(
-    title = "Swallowing Counts per Week by Strategy",
+    title = "Swallowing Rate per Week by Strategy",
     x = "Week",
-    y = "Normalized Swallowing Count"
+    y = "Swallowing Rate"
   )
 
 p6
 
 p7 <- ggplot(behavior_summary |> filter(Behavior == "Turning_stuff"), 
-             aes(x = as.factor(Week), y = Normalized_Behavior_Count, 
+             aes(x = as.factor(Week), y = Behavior_Rate, 
                  fill = Strategy)) +
-  geom_col(position = "dodge", alpha = 0.7) +
+  geom_col(position = position_dodge(width = 0.9)) +
   scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
   theme_minimal(base_size = 14) +
   labs(
-    title = "Turning Counts per Week by Strategy",
+    title = "Turning Rate per Week by Strategy",
     x = "Week",
-    y = "Normalized Turning Count"
+    y = "Turning Rate"
   )
 
 p7
@@ -397,22 +413,22 @@ p7
 p_point_behavior <- p4 + p5 + p6 + p7
 p_point_behavior
 
-ggsave("point_forage_stratgy.png", plot = p_point_behavior, width = 18, height = 10, dpi = 300)
+ggsave("rate_forage_stratgy.png", plot = p_point_behavior, width = 18, height = 10, dpi = 300)
 
 ##### Looking at all the different behaviors
-aov(Normalized_Behavior_Count ~ Behavior * Strategy, data = behavior_summary)
-summary(aov(Normalized_Behavior_Count ~ Behavior * Strategy, data = behavior_summary))
+aov(Behavior_Rate ~ Behavior * Strategy, data = behavior_summary)
+summary(aov(Behavior_Rate ~ Behavior * Strategy, data = behavior_summary))
 
 # Post-hoc test
 library(emmeans)
-emmeans_results <- emmeans(aov(Normalized_Behavior_Count ~ Behavior * Strategy, data = behavior_summary), 
+emmeans_results <- emmeans(aov(Behavior_Rate ~ Behavior * Strategy, data = behavior_summary), 
                            pairwise ~ Behavior | Strategy)
 print(emmeans_results)
 # Plotting the results
 library(ggplot2)
 behavior_summary$Behavior <- factor(behavior_summary$Behavior, 
                                      levels = c("Probing", "Surface_pecking", "Swallowing", "Turning_stuff"))
-p8 <- ggplot(behavior_summary, aes(x = Behavior, y = Normalized_Behavior_Count, fill = Strategy)) +
+p8 <- ggplot(behavior_summary, aes(x = Behavior, y = Behavior_Rate, fill = Strategy)) +
   geom_boxplot() +
   scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
   theme_minimal(base_size = 14) +
@@ -425,11 +441,11 @@ p8 <- ggplot(behavior_summary, aes(x = Behavior, y = Normalized_Behavior_Count, 
 p8
 
 # I want to also do an emmeans test to compare the strategies for each behavior
-emmeans_results <- emmeans(aov(Normalized_Behavior_Count ~ Behavior * Strategy, data = behavior_summary), 
+emmeans_results <- emmeans(aov(Behavior_Rate ~ Behavior * Strategy, data = behavior_summary), 
                            pairwise ~ Strategy | Behavior)
 print(emmeans_results)
 # Plotting the results
-p9 <- ggplot(behavior_summary, aes(x = Behavior, y = Normalized_Behavior_Count, fill = Strategy)) +
+p9 <- ggplot(behavior_summary, aes(x = Behavior, y = Behavior_Rate, fill = Strategy)) +
   geom_boxplot() +
   scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
   theme_minimal(base_size = 14) +
@@ -442,7 +458,7 @@ p9 <- ggplot(behavior_summary, aes(x = Behavior, y = Normalized_Behavior_Count, 
 p9
 
 # I want there to be a "***" above the boxplots of probing of both migrant and overwintering and  "**" above the boxplots of surface_pecking of both migrant and overwintering
-p10 <- p9 +
+#p10 <- p9 +
   geom_text(data = data.frame(Behavior = "Probing", Strategy = "migrant", y = 52, label = "***"),
             aes(x = Behavior, y = y, label = label), vjust = -1, size = 5) +
   geom_text(data = data.frame(Behavior = "Probing", Strategy = "overwinterer", y = 50, label = "***"),
@@ -452,7 +468,7 @@ p10 <- p9 +
   geom_text(data = data.frame(Behavior = "Surface_pecking", Strategy = "overwinterer", y = 40, label = "**"),
             aes(x = Behavior, y = y, label = label), vjust = -1, size = 5)
 p10
-ggsave("point_behaviors_strategy.png", plot = p10, width = 18, height = 10, dpi = 300)
+#ggsave("point_behaviors_strategy.png", plot = p10, width = 18, height = 10, dpi = 300)
 
 #################################################################################
 # The same analysis but than for the stage event behaviors
@@ -472,7 +488,7 @@ media_duration_per_week <- behaviors |>
 #  Join and normalize
 stage_behavior_summary <- behavior_duration |>
   left_join(media_duration_per_week, by = "Week") |>
-  mutate(Normalized_Duration = (Total_Duration / Total_Media_Duration) * 100) 
+  mutate(Behavior_Rat = (Total_Duration / Total_Media_Duration) * 100) 
 
 #  Reorder Week factor (optional)
 stage_behavior_summary$Week <- factor(
@@ -484,7 +500,7 @@ stage_behavior_summary <- stage_behavior_summary |>
   filter(Behavior %in% c("Walking", "Alert", "Digging", "Routing", "Handling_prey"))
 
 # Plotting the stage behaviors
-p_stage <- ggplot(stage_behavior_summary, aes(x = as.factor(Week), y = Normalized_Duration, fill = Strategy)) +
+p_stage <- ggplot(stage_behavior_summary, aes(x = as.factor(Week), y = Behavior_Rate, fill = Strategy)) +
   geom_col(position = "dodge", alpha = 0.7) +
   scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
   theme_minimal(base_size = 14) +
@@ -496,58 +512,58 @@ p_stage <- ggplot(stage_behavior_summary, aes(x = as.factor(Week), y = Normalize
   facet_wrap(~Behavior)
 p_stage
 
-p11 <- ggplot(stage_behavior_summary |> filter(Behavior == "Walking"), aes(x = as.factor(Week), y = Normalized_Duration , fill = Strategy)) +
-  geom_col(position = "dodge", alpha = 0.7) +
+p11 <- ggplot(stage_behavior_summary |> filter(Behavior == "Walking"), aes(x = as.factor(Week), y = Behavior_Rate , fill = Strategy)) +
+  geom_col(position = position_dodge(), width = 0.9) +
   scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
   theme_minimal(base_size = 14) +
   labs(
     title = "Walking per Week by Strategy",
     x = "Week",
-    y = "Normalized Walking Duration"
+    y = "Walking Rate"
   )
 p11
 
-p12 <- ggplot(stage_behavior_summary |> filter(Behavior == "Alert"), aes(x = as.factor(Week), y = Normalized_Duration , fill = Strategy)) +
-  geom_col(position = "dodge", alpha = 0.7) +
+p12 <- ggplot(stage_behavior_summary |> filter(Behavior == "Alert"), aes(x = as.factor(Week), y = Behavior_Rate , fill = Strategy)) +
+  geom_col(position = position_dodge(), width = 0.9) +
   scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
   theme_minimal(base_size = 14) +
   labs(
     title = "Alert per Week by Strategy",
     x = "Week",
-    y = "Normalized Alert Duration"
+    y = "Alert Rate"
   )
 p12
 
-p13 <- ggplot(stage_behavior_summary |> filter(Behavior == "Digging"), aes(x = as.factor(Week), y = Normalized_Duration , fill = Strategy)) +
-  geom_col(position = "dodge", alpha = 0.7) +
+p13 <- ggplot(stage_behavior_summary |> filter(Behavior == "Digging"), aes(x = as.factor(Week), y = Behavior_Rate , fill = Strategy)) +
+  geom_col(position = position_dodge(), width = 0.9) +
   scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
   theme_minimal(base_size = 14) +
   labs(
     title = "Digging per Week by Strategy",
     x = "Week",
-    y = "Normalized Digging Duration"
+    y = "Digging Rate"
   )
 p13
 
-p14 <- ggplot(stage_behavior_summary |> filter(Behavior == "Routing"), aes(x = as.factor(Week), y = Normalized_Duration , fill = Strategy)) +
-  geom_col(position = "dodge", alpha = 0.7) +
+p14 <- ggplot(stage_behavior_summary |> filter(Behavior == "Routing"), aes(x = as.factor(Week), y = Behavior_Rate , fill = Strategy)) +
+  geom_col(position = position_dodge(), width = 0.9) +
   scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
   theme_minimal(base_size = 14) +
   labs(
     title = "Routing per Week by Strategy",
     x = "Week",
-    y = "Normalized Routing Duration"
+    y = "Routing Rate"
   )
 p14
 
-p15 <- ggplot(stage_behavior_summary |> filter(Behavior == "Handling_prey"), aes(x = as.factor(Week), y = Normalized_Duration , fill = Strategy)) +
-  geom_col(position = "dodge", alpha = 0.7) +
+p15 <- ggplot(stage_behavior_summary |> filter(Behavior == "Handling_prey"), aes(x = as.factor(Week), y = Behavior_Rate , fill = Strategy)) +
+  geom_col(position = position_dodge(), width = 0.9) +
   scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
   theme_minimal(base_size = 14) +
   labs(
     title = "Handling Prey per Week by Strategy",
     x = "Week",
-    y = "Normalized Handling Prey Duration"
+    y = "Handling Prey Rate"
   )
 p15
 
@@ -556,22 +572,22 @@ p_stage_behavior
 ggsave("stage_behaviors_strategy.png", plot = p_stage_behavior, width = 18, height = 10, dpi = 300)
 
 ##### Looking at whether strategy influences duration
-aov(Normalized_Duration ~ Behavior * Strategy, data = stage_behavior_summary)
-summary(aov(Normalized_Duration ~ Behavior * Strategy, data = stage_behavior_summary))
+aov(Behavior_Rate ~ Behavior * Strategy, data = stage_behavior_summary)
+summary(aov(Behavior_Rate ~ Behavior * Strategy, data = stage_behavior_summary))
 
 #####
-emmeans_results2 <- emmeans(aov(Normalized_Duration ~ Behavior * Strategy, data = stage_behavior_summary), 
+emmeans_results2 <- emmeans(aov(Behavior_Rate ~ Behavior * Strategy, data = stage_behavior_summary), 
                            pairwise ~ Strategy | Behavior)
 print(emmeans_results2)
 # Plotting the results
-p16 <- ggplot(stage_behavior_summary, aes(x = Behavior, y = Normalized_Duration, fill = Strategy)) +
+p16 <- ggplot(stage_behavior_summary, aes(x = Behavior, y = Behavior_Rate, fill = Strategy)) +
   geom_boxplot() +
   scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
   theme_minimal(base_size = 14) +
   labs(
-    title = "Normalized Stage Behavior Duration by Strategy",
+    title = "Rate Stage Behavior Duration by Strategy",
     x = "Behavior",
-    y = "Normalized Duration"
+    y = "Behavior Rate"
   ) +
   facet_wrap(~Strategy)
 p16

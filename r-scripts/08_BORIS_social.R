@@ -55,3 +55,6 @@ ggplot(Social, aes(x=Week, y=Aggressive, fill=overwinterer)) +
   labs(title="Aggressive Behavior by Week and Strategy", x="Week", y="Count of Aggressive Behavior") +
   scale_fill_manual(values=c("#FF9999", "#66B3FF")) +
   theme_minimal(base_size = 14)
+# Save the plot
+ggsave("Aggressive_Behavior_by_Week_and_Strategy.png", width = 10, height = 6)
+
