@@ -25,18 +25,19 @@ ggplot(complete_dataset, aes(x = Observation.duration)) +
   scale_x_continuous(breaks = seq(0, max(complete_dataset$Observation.duration, na.rm = TRUE), by = 5)) +
   theme_minimal()
 
-# I want the three_letter_code for JAE, JHY, JTN, JXM, JYL, KCY, KKH, KNX, KPM, KUL, MCH, MLC, NKE, PAE, PHT and PKN to be assigned in a new column called strategy to be assigned overwinterer and for the rest of the three_letter_code to be assigned migrant
+# I want the three_letter_code for JTN, JYL, KJU, KNP, KPM, KXM, LCT, LMN, LPT, LYK, MAU, MCH, MTJ, MYV, NLJ, NTV, PAE, PAJ, PKN, PMP, PNL to be assigned in a new column called strategy to be assigned overwinterer and for the rest of the three_letter_code to be assigned migrant
+            
 
 complete_dataset <- complete_dataset |>
   dplyr::mutate(Strategy = ifelse(
-    Three_letter_code %in% c("JAE", "JHY", "JTN", "JXM", "JYL", "KCY", "KKH", "KNX", "KPM", "KUL", "MCH", "MLC", "NKE", "PAE", "PHT", "PKN"),
+    Three_letter_code %in% c("JTN", "JYL", "KJU", "KNP", "KPM", "KXM", "LCT", "LMN", "LPT", "LYK", "MAU", "MCH", "MTJ", "MYV", "NLJ", "PAE", "PAJ", "PKN", "PMP", "PNL"),
     "overwinterer",
     "migrant"
   ))
 
 complete_dataset |>
   count(Strategy)
-# migrant n=30308, overwinterer n=13444
+# migrant n=29385, overwinterer n=14367
 
 ##############################################################################
 # Converting dataset to work with duration time, etc
