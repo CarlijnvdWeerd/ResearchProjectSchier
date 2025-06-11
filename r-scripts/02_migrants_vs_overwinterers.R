@@ -9,9 +9,14 @@ observation_data$year <- as.integer(format(observation_data$observation_date, "%
 observation_data$month <- as.integer(format(observation_data$observation_date, "%m"))
 
 # Define seasonal flags
-observation_data$northward_migration <- ifelse(
+observation_data$early_northward_migration <- ifelse(
   observation_data$observation_date >= as.Date(paste0(observation_data$year,
                                                       "-03-16")) &
+    observation_data$observation_date <= as.Date(paste0(observation_data$year,
+                                                        "-04-10")),1, 0)
+observation_data$late_northward_migration <- ifelse(
+  observation_data$observation_date >= as.Date(paste0(observation_data$year,
+                                                      "-04-11")) &
     observation_data$observation_date <= as.Date(paste0(observation_data$year,
                                                         "-06-15")),1, 0)
 observation_data$nonbreeding <- ifelse(
@@ -34,14 +39,15 @@ observation_data$overwinterers <- ifelse(
   1, 0)
 
 
-observation_data$category <- ifelse(observation_data$northward_migration == 1,  
-                                    "northward_migration",
+observation_data$category <- ifelse(observation_data$early_northward_migration == 1,                                      "early_northward_migration",
+                             ifelse(observation_data$late_northward_migration 
+                                    == 1, "late_northward_migration",
                              ifelse(observation_data$nonbreeding == 1,
                                     "nonbreeding",
-                             ifelse(observation_data$southward_migration == 1, 
-                                    "southward_migration",
+                             ifelse(observation_data$southward_migration == 1,                                     "southward_migration",
                              ifelse(observation_data$overwinterers == 1, 
-                                    "overwinterers", NA))))
+                                    "overwinterers", NA)))))
+
 
 filmed_birds <- observation_data |>
 filter(bird_code %in% c(
