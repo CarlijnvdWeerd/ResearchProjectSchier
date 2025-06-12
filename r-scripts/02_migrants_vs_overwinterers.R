@@ -115,7 +115,7 @@ filtered_data2024_2025 <- filmed_birds %>%
   filter(observation_date >= start_date2024 & observation_date <= end_date2025) |>
   mutate(day_number = as.numeric(observation_date - as.Date("2024-10-01")) + 1)
 
-ggplot(filtered_data2024_2025, aes(x = day_number, y = observation_lat)) +
+p_allobserve <- ggplot(filtered_data2024_2025, aes(x = day_number, y = observation_lat)) +
   geom_point(aes(color = category), size = 2, alpha = 0.7) +
   facet_wrap(~ bird_code) +
   labs(title = "Latitude of Observations over Time per Bird",
@@ -123,6 +123,9 @@ ggplot(filtered_data2024_2025, aes(x = day_number, y = observation_lat)) +
        y = "Latitude",
        color = "Category") +
   theme_minimal()
+p_allobserve
+
+ggsave("all_observation_over_time.png", plot = p_allobserve, width = 18, height = 18, dpi = 300)
 
 library(dplyr)
 
