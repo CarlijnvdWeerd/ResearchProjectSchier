@@ -642,25 +642,19 @@ p16 <- ggplot(stage_behavior , aes(x = Behavior, y = Behavior_Rate, fill = Strat
     y = "Behavior Rate")
 p16
 
-# I want there to be a "***" above the boxplots of walking of both migrant and overwintering
-####p17 <- p16 +
-  geom_text(
-    data = data.frame(Behavior = "Walking", Strategy = "migrant", y = 40, label = "***"),
-    aes(x = Behavior, y = y, label = label, Strategy = Strategy),  
-    inherit.aes = FALSE,
-    vjust = -1,
-    size = 5
-  ) +
-  geom_text(
-    data = data.frame(Behavior = "Walking", Strategy = "overwinterer", y = 40, label = "***"),
-    aes(x = Behavior, y = y, label = label, Strategy = Strategy),  
-    color = "black", 
-    inherit.aes = FALSE,
-    vjust = -1,
-    size = 5
-  ) +
-  expand_limits(y = 45)  
+# I want there to be a "***" above the boxplots of routing and alert, and "* above walking
+p17 <- p16 +
+  geom_text(data = data.frame(Behavior = "Routing", y = 0.9, label = "***"),
+            aes(x = Behavior, y = y, label = label),
+            vjust = -1, size = 5, inherit.aes = FALSE) +
+  geom_text(data = data.frame(Behavior = "Alert", y = 0.9, label = "***"),
+            aes(x = Behavior, y = y, label = label),
+            vjust = -1, size = 5, inherit.aes = FALSE) +
+  geom_text(data = data.frame(Behavior = "Walking", y = 0.9, label = "*"),
+            aes(x = Behavior, y = y, label = label),
+            vjust = -1, size = 5, inherit.aes = FALSE)
 
 p17
-ggsave("stage_behaviors_strategy_boxplot.png", plot = p16, width = 18, height = 10, dpi = 300)
+
+ggsave("stage_behaviors_strategy_boxplot.png", plot = p17, width = 18, height = 10, dpi = 300)
 
