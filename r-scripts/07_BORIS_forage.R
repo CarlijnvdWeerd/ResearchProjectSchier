@@ -325,18 +325,6 @@ point_behaviors <- complete_dataset |>
 # Check for normality of probing
 qqnorm(point_behaviors$Behavior_Count)
 
-# Check for residuals
-ggplot(point_behaviors, aes(x = fitted(lm(Behavior_Count ~ Strategy, data = behaviors)), 
-                      y = resid(lm(Behavior_Count ~ Strategy, data = behaviors)))) +
-  geom_point() +
-  geom_smooth(method = "lm", color = "red") +
-  labs(
-    title = "Residuals vs Fitted Values",
-    x = "Fitted Values",
-    y = "Residuals"
-  ) +
-  theme_minimal()
-
 counts_point <- point_behaviors |>
   group_by(Week, Strategy, Behavior) |>
   summarise(n = n_distinct(Observation_id), .groups = "drop") |>
@@ -360,39 +348,60 @@ p5b <- p5a + geom_text(data = counts_point |> filter(Behavior == "Probing"), aes
                             position = position_dodge(width = 0.8), size = 4)
 p5b
 
-## making models to understand the trend of the probing 
-m6 <- lm(Behavior_Rate ~ Week * Strategy, data = subset(point_behaviors, Behavior == "Probing"))
-summary(m6)
+glmer6 <- glmer(Behavior_Rate ~ Week * Strategy + (1 | Three_letter_code), 
+                 family = Gamma(link = "log"),
+                 data = subset(point_behaviors, Behavior == "Probing"),
+                 control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5)))
+summary(glmer6)
 
-m7 <- lmer(Behavior_Rate ~ Week * Strategy + (1 | Three_letter_code), 
-                  data = subset(point_behaviors, Behavior == "Probing"))
-summary(m7)
+glmer7 <- glmer(Behavior_Rate ~ Strategy + (1 | Week) + (1 | Three_letter_code), 
+                 family = Gamma(link = "log"),
+                 data = subset(point_behaviors, Behavior == "Probing"),
+                 control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5)))
+summary(glmer7)
 
-m8 <- lmer(Behavior_Rate ~ Week * Strategy + (1 | Three_letter_code) 
+AIC(glmer6, glmer7)
+
+glmer8 <- glmer(Behavior_Rate ~ Week * Strategy + (1 | Three_letter_code) 
             + (1| Transect_ID) + (1|Tide) + (1|Habitat), data = subset
-            (point_behaviors, Behavior == "Probing"))
-summary(m8)
-anova(m7, m8)
+            (point_behaviors, Behavior == "Probing"),
+            family = Gamma(link = "log"),
+            control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5)))
+summary(glmer8)
+## Nothing explains the difference between probing ?
 
-m9 <- lmer(Behavior_Rate ~ Week * Strategy + (1|Three_letter_code)
-            + (1| Habitat), data = subset(point_behaviors, Behavior == 
-                                            "Probing"))
-summary(m9)
-anova(m7,m9)
-anova(m8,m9)
+AIC(glmer6, glmer8)
 
-t.test(Behavior_Rate ~ Strategy, data = subset(point_behaviors, Behavior == "Probing"))
+point_behaviors %>%
+  filter(Behavior == "Probing") %>%
+  group_by(Week) %>%
+  summarise(p_value = kruskal.test(Behavior_Rate ~ Strategy)$p.value)
 
-#Welch Two Sample t-test
 
-#data:  Behavior_Rate by Strategy
-#t = -3.7197, df = 145.35, p-value = 0.0002842
-#alternative hypothesis: true difference in means between group migrant and group #overwinterer is not equal to 0
-#95 percent confidence interval:
-#  -0.024071895  -0.07367087
-#sample estimates:
-#  mean in group migrant mean in group overwinterer 
-#0.4411215                 0.5983164 
+## making models to understand the trend of the probing 
+##m6 <- lm(Behavior_Rate ~ Week * Strategy, data = subset(point_behaviors, Behavior == "Probing"))
+#summary(m6)
+
+
+#m7 <- lmer(Behavior_Rate ~ Week * Strategy + (1 | Three_letter_code), 
+#                 data = subset(point_behaviors, Behavior == "Probing"))
+#summary(m7)
+
+#m8 <- lmer(Behavior_Rate ~ Week * Strategy + (1 | Three_letter_code) 
+#            + (1| Transect_ID) + (1|Tide) + (1|Habitat), data = subset
+#            (point_behaviors, Behavior == "Probing"))
+#summary(m8)
+#anova(m7, m8)
+
+#m9 <- lmer(Behavior_Rate ~ Week * Strategy + (1|Three_letter_code)
+#            + (1| Habitat), data = subset(point_behaviors, Behavior == 
+#                                            "Probing"))
+#summary(m9)
+#anova(m7,m9)
+#anova(m8,m9)
+
+#t.test(Behavior_Rate ~ Strategy, data = subset(point_behaviors, Behavior == "Probing"))
+
 
 p6a <- ggplot(point_behaviors |> filter(Behavior == "Surface_pecking"),
              aes(x = as.factor(Week), y = Behavior_Rate, 
@@ -412,6 +421,35 @@ p6b <- p6a + geom_text(data = counts_point |> filter(Behavior == "Surface_peckin
                        position = position_dodge(width = 0.8), size = 4)
 
 p6b
+
+glmer9 <- glmer(Behavior_Rate ~ Week * Strategy + (1 | Three_letter_code), 
+                family = Gamma(link = "log"),
+                data = subset(point_behaviors, Behavior == "Surface_pecking"),
+                control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5)))
+summary(glmer9)
+
+glmer10 <- glmer(Behavior_Rate ~ Strategy + (1 | Week) + (1 | Three_letter_code), 
+                family = Gamma(link = "log"),
+                data = subset(point_behaviors, Behavior == "Surface_pecking"),
+                control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5)))
+summary(glmer10)
+
+AIC(glmer9, glmer10)
+
+glmer11 <- glmer(Behavior_Rate ~ Week * Strategy + (1 | Three_letter_code) 
+                + (1| Transect_ID) + (1|Tide) + (1|Habitat), data = subset
+                (point_behaviors, Behavior == "Surface_pecking"),
+                family = Gamma(link = "log"),
+                control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5)))
+summary(glmer11)
+## Nothing explains the difference between surface_pecking ?
+
+AIC(glmer9, glmer11)
+
+point_behaviors %>%
+  filter(Behavior == "Surface_pecking") %>%
+  group_by(Week) %>%
+  summarise(p_value = kruskal.test(Behavior_Rate ~ Strategy)$p.value)
 
 p7a <- ggplot(point_behaviors |> filter(Behavior == "Turning_stuff"),
              aes(x = as.factor(Week), y = Behavior_Rate, 
@@ -433,16 +471,23 @@ p7b
 p_point_behavior <- p5b + p6b + p7b
 p_point_behavior
 
-emmeans_results <- emmeans(aov(Behavior_Rate ~ Behavior * Strategy, data = point_behaviors), 
-                           pairwise ~ Strategy | Behavior)
-print(emmeans_results)
+#emmeans_results <- emmeans(aov(Behavior_Rate ~ Behavior * Strategy, data = #point_behaviors), 
+#                           pairwise ~ Strategy | Behavior)
+#print(emmeans_results)
+
+wilcox.test(Behavior_Rate ~ Strategy, data = point_behaviors)
+# W = 57959, p-value = 0.2195
+
+point_behaviors %>%
+  group_by(Week) %>%
+  summarise(p_value = kruskal.test(Behavior_Rate ~ Strategy)$p.value)
 
 
 ggsave("rate_forage_stratgy.png", plot = p_point_behavior, width = 28, height = 10, dpi = 300)
 
 ##### Looking at all the different behaviors
-aov(Behavior_Rate ~ Behavior * Strategy, data = point_behavior_id)
-summary(aov(Behavior_Rate ~ Behavior * Strategy, data = point_behavior_id))
+aov(Behavior_Rate ~ Behavior * Strategy, data = point_behaviors)
+summary(aov(Behavior_Rate ~ Behavior * Strategy, data = point_behaviors))
 
 # Plotting the results
 # I want to do an emmeans test to compare the strategies for each behavior
@@ -482,29 +527,28 @@ p11
 # I want to add up the duration per week per behavior per strategy and i also want to add up the Media.duration..s per week. Then i want to divide the duration with the media.duration..s so i end up with duration per week per behavior per strategy that is normalized
 
 # Sum duration per Week, Strategy, Behavior
-behavior_duration <- behaviors |>
-  group_by(Week, Strategy, Behavior) |>
-  summarise(Total_Duration = sum(Duration), .groups = "drop")
+#behavior_duration <- behaviors |>
+#  group_by(Week, Strategy, Behavior) |>
+#  summarise(Total_Duration = sum(Duration), .groups = "drop")
 
 # Get total media duration per week per strategy
-media_duration_per_week <- behaviors |>
-  distinct(Strategy, Observation_id, Week, Media.duration..s.) |>
-  group_by(Strategy, Week) |>
-  summarise(Total_Media_Duration = sum(Media.duration..s.), .groups = "drop")
+#media_duration_per_week <- behaviors |>
+#  distinct(Strategy, Observation_id, Week, Media.duration..s.) |>
+#  group_by(Strategy, Week) |>
+#  summarise(Total_Media_Duration = sum(Media.duration..s.), .groups = "drop")
 
 #  Join and normalize
-stage_behavior_summary <- behavior_duration |>
-  left_join(media_duration_per_week, by = c("Week", "Strategy")) |>
-  mutate(Behavior_Rat = (Total_Duration / Total_Media_Duration) * 100) 
+#stage_behavior_summary <- behavior_duration |>
+#  left_join(media_duration_per_week, by = c("Week", "Strategy")) |>
+#  mutate(Behavior_Rat = (Total_Duration / Total_Media_Duration) * 100) 
 
 #  Reorder Week factor (optional)
-stage_behavior_summary$Week <- factor(
-  stage_behavior_summary$Week,
-  levels = c(9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21)
-)
+#stage_behavior_summary$Week <- factor(
+#  stage_behavior_summary$Week,
+#  levels = c(9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21))
 
-stage_behavior_summary <- stage_behavior_summary |>
-  filter(Behavior %in% c("Walking", "Alert", "Digging", "Routing", "Handling_prey"))
+#stage_behavior_summary <- stage_behavior_summary |>
+#  filter(Behavior %in% c("Walking", "Alert", "Digging", "Routing", #"Handling_prey"))
 
 stage_behavior <- behaviors |>
   filter(Behavior %in% c("Walking", "Alert", "Digging", "Routing", "Handling_prey")) |>
@@ -524,6 +568,8 @@ p_stage <- ggplot(stage_behavior,
   facet_wrap(~Behavior)
   
 p_stage
+
+qqnorm(stage_behavior$Behavior_Rate)
 
 counts_stage <- stage_behavior |>
   group_by(Week, Strategy, Behavior) |>
@@ -547,6 +593,29 @@ p11b <- p11a + geom_text(data = counts_stage |> filter(Behavior == "Walking"), a
 
 p11b
 
+glmer12 <- glmer(Behavior_Rate ~ Week * Strategy + (1 | Three_letter_code), 
+                family = Gamma(link = "log"),
+                data = subset(stage_behavior, Behavior == "Walking"),
+                control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5)))
+summary(glmer12)
+
+p11c <- p11b +
+  geom_text(data = data.frame(
+    Week = factor(c(13, 18, 19, 21)),
+    label = c("***", "***", "***", "***"),
+    y = c(1.00, 1.00, 0.75, 0.7)
+  ),
+  aes(x = Week, y = y, label = label),
+  vjust = -0.5,
+  size = 6,
+  inherit.aes = FALSE)  # <--- This is the key!
+p11c
+
+stage_behavior %>%
+  filter(Behavior == "Walking") %>%
+  group_by(Week) %>%
+  summarise(p_value = kruskal.test(Behavior_Rate ~ Strategy)$p.value)
+
 p12a <- ggplot(stage_behavior |> filter(Behavior == "Alert"),
               aes(x = as.factor(Week), y = Behavior_Rate, 
                   fill = Strategy)) +
@@ -564,6 +633,29 @@ p12b <- p12a + geom_text(data = counts_stage |> filter(Behavior == "Alert"), aes
 
 p12b
 
+glmer13 <- glmer(Behavior_Rate ~ Week * Strategy + (1 | Three_letter_code), 
+                family = Gamma(link = "log"),
+                data = subset(stage_behavior, Behavior == "Alert"),
+                control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5)))
+summary(glmer13)
+
+p12c <- p12b +
+  geom_text(data = data.frame(
+    Week = factor(c(18, 19, 21)),
+    label = c("***", "***", "***"),
+    y = c(1.00, 0.7, 0.7)
+  ),
+  aes(x = Week, y = y, label = label),
+  vjust = -0.5,
+  size = 6,
+  inherit.aes = FALSE)  # <--- This is the key!
+p12c
+
+stage_behavior %>%
+  filter(Behavior == "Alert") %>%
+  group_by(Week) %>%
+  summarise(p_value = kruskal.test(Behavior_Rate ~ Strategy)$p.value)
+
 p13a <- ggplot(stage_behavior |> filter(Behavior == "Digging"),
               aes(x = as.factor(Week), y = Behavior_Rate, 
                   fill = Strategy)) +
@@ -580,6 +672,11 @@ p13b <- p13a + geom_text(data = counts_stage |> filter(Behavior == "Digging"), a
                          position = position_dodge(width = 0.8), size = 2)
 
 p13b
+glmer14 <- glmer(Behavior_Rate ~ Week * Strategy + (1 | Three_letter_code), 
+                family = Gamma(link = "log"),
+                data = subset(stage_behavior, Behavior == "Digging"),
+                control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5)))
+summary(glmer14)
 
 p14a <- ggplot(stage_behavior |> filter(Behavior == "Routing"),
               aes(x = as.factor(Week), y = Behavior_Rate, 
@@ -615,21 +712,42 @@ p15b <- p15a + geom_text(data = counts_stage |> filter(Behavior == "Handling_pre
 
 p15b
 
+glmer15 <- glmer(Behavior_Rate ~ Week * Strategy + (1 | Three_letter_code), 
+                family = Gamma(link = "log"),
+                data = subset(stage_behavior, Behavior == "Handling_prey"),
+                control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5)))
+summary(glmer15)
+
+p15c <- p15b +
+  geom_text(data = data.frame(
+    Week = factor(c(13, 16, 17, 18, 21)),
+    label = c("***", "*", "***", "***", "***"),
+    y = c(1.00, 0.5, 0.75, 1.0, 0.7)
+  ),
+  aes(x = Week, y = y, label = label),
+  vjust = -0.5,
+  size = 6,
+  inherit.aes = FALSE)  # <--- This is the key!
+p15c
+
 p_stage_behavior <- p11b + p12b + p13b + p14b + p15b
 p_stage_behavior
 ggsave("stage_behaviors_strategy.png", plot = p_stage_behavior, width = 18, height = 10, dpi = 300)
 
-p_stage_filtered <- p11b + p12b + p15b
+p_stage_filtered <- p11c + p12c + p15c
 p_stage_filtered
 ggsave("stage_behaviors_strategy_filtered.png", plot = p_stage_filtered, width = 25, height = 10, dpi = 300)
 ##### Looking at whether strategy influences duration
-aov(Behavior_Rate ~ Behavior * Strategy, data = stage_behavior_summary)
-summary(aov(Behavior_Rate ~ Behavior * Strategy, data = stage_behavior_summary))
+#aov(Behavior_Rate ~ Behavior * Strategy, data = stage_behavior_summary)
+#summary(aov(Behavior_Rate ~ Behavior * Strategy, data = #stage_behavior_summary))
+
+wilcox.test(Behavior_Rate ~ Strategy, data = stage_behavior)
+# W = 2862355, p-value = 0.715
 
 #####
-emmeans_results2 <- emmeans(aov(Behavior_Rate ~ Behavior * Strategy, data = stage_behavior), 
-                           pairwise ~ Strategy | Behavior)
-print(emmeans_results2)
+#emmeans_results2 <- emmeans(aov(Behavior_Rate ~ Behavior * Strategy, data = #stage_behavior), 
+#                           pairwise ~ Strategy | Behavior)
+#print(emmeans_results2)
 # Plotting the results
 
 p16 <- ggplot(stage_behavior , aes(x = Behavior, y = Behavior_Rate, fill = Strategy)) +
@@ -656,5 +774,5 @@ p17 <- p16 +
 
 p17
 
-ggsave("stage_behaviors_strategy_boxplot.png", plot = p17, width = 18, height = 10, dpi = 300)
+ggsave("stage_behaviors_strategy_boxplot.png", plot = p16, width = 18, height = 10, dpi = 300)
 

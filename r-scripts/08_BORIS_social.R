@@ -14,7 +14,7 @@ complete_dataset$Media.duration..s. <- as.numeric(complete_dataset$Media.duratio
 
 complete_dataset <- complete_dataset |>
   dplyr::mutate(Strategy = ifelse(
-    Three_letter_code %in% c("JAE", "JHY", "JTN", "JXM", "JYL", "KCY", "KKH", "KNX", "KPM", "KUL", "MCH", "MLC", "NKE", "PAE", "PHT", "PKN"),
+    Three_letter_code %in% c("JTN", "JYL", "KJU", "KNP", "KPM", "KXM", "LCT", "LMN", "LPT", "LYK", "MAU", "MCH", "MTJ", "MYV", "NLJ", "PAE", "PAJ", "PKN", "PMP", "PNL"),
     "overwinterer",
     "migrant"
   ))
@@ -28,7 +28,7 @@ complete_dataset |>
   count(Social_behavior)
 
 
-ggplot(complete_dataset, aes(x=Social_behavior, fill=Strategy)) +
+ggplot(complete_dataset |> filter(Analysed == "Yes"), aes(x=Aggressive.or.submissive, fill=Strategy)) +
   geom_bar(position="fill") +
   labs(title="Social Behavior by Strategy", x="Social Behavior", y="Proportion") +
   scale_fill_manual(values=c("#FF9999", "#66B3FF"))
