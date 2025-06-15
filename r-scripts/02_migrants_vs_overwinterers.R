@@ -75,7 +75,7 @@ library(dplyr)
 library(ggplot2)
 
 # Define date range for 2024 / 2025
-start_date2024 <- as.Date("2024-04-01")
+start_date2024 <- as.Date("2024-06-01")
 end_date2025 <- as.Date("2025-06-15")
 
 # Filter observations
@@ -113,19 +113,45 @@ ggplot(winter_data, aes(x = day_number, y = observation_lat)) +
 # Filter observations
 filtered_data2024_2025 <- filmed_birds %>%
   filter(observation_date >= start_date2024 & observation_date <= end_date2025) |>
-  mutate(day_number = as.numeric(observation_date - as.Date("2024-10-01")) + 1)
+  mutate(day_number = as.numeric(observation_date - as.Date("2024-06-01")) + 1)
 
 p_allobserve <- ggplot(filtered_data2024_2025, aes(x = day_number, y = observation_lat)) +
   geom_point(aes(color = category), size = 2, alpha = 0.7) +
   facet_wrap(~ bird_code) +
   labs(title = "Latitude of Observations over Time per Bird",
-       x = "Day since Oct 1, 2024",
+       x = "Day since June 1, 2024",
        y = "Latitude",
        color = "Category") +
   theme_minimal()
 p_allobserve
 
 ggsave("all_observation_over_time.png", plot = p_allobserve, width = 18, height = 18, dpi = 300)
+
+birds <- ggplot(filtered_data2024_2025, aes(x = day_number, y = bird_code)) +
+  geom_point(aes(color = category), size = 2, alpha = 0.7) +
+
+geom_vline(xintercept = c(31, 184, 289, 315, 381), linetype = "dashed", color = "gray40") +
+ 
+  annotate("text", x = 107, y = Inf, label = "Southward\nMigration", vjust = 2, size = 3) +
+  annotate("text", x = 236, y = Inf, label = "Overwinterers", vjust = 2, size = 3) +
+  annotate("text", x = 301, y = Inf, label = "Early\nNorthward", vjust = 2, size = 3) +
+  annotate("text", x = 348, y = Inf, label = "Late\nNorthward", vjust = 2, size = 3) +
+  annotate("text", x = 388, y = Inf, label = "Nonbreeding", vjust = 2, size = 3) +
+  
+  labs(
+    title = "Date of Observations per Bird",
+    x = "Day since June 1, 2024",
+    y = "Bird Code",
+    color = "Category"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_text(size = 6)  # Smaller y-axis labels
+  )
+
+birds
+
+ggsave("birds_over_time.png", plot = birds, width = 18, height = 15, dpi = 300)
 
 library(dplyr)
 

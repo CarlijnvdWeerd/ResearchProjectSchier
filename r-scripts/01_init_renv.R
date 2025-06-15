@@ -11,6 +11,7 @@ install.packages('patchwork')
 install.packages('caret')
 install.packages('lubridate')
 install.packages('lme4')
+install.packages("emmeans")
 
 ## open libraries
 library(tidyverse)
@@ -22,3 +23,4 @@ library(patchwork)
 library(caret)
 library(lubridate)
 library(lme4)
+library(emmeans)

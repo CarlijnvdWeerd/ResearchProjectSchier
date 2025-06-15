@@ -29,15 +29,22 @@ ggplot(complete_dataset, aes(x = Observation.duration)) +
             
 
 complete_dataset <- complete_dataset |>
-  dplyr::mutate(Strategy = ifelse(
-    Three_letter_code %in% c("JTN", "JYL", "KJU", "KNP", "KPM", "KXM", "LCT", "LMN", "LPT", "LYK", "MAU", "MCH", "MTJ", "MYV", "NLJ", "PAE", "PAJ", "PKN", "PMP", "PNL"),
-    "overwinterer",
-    "migrant"
+  dplyr::mutate(Strategy = case_when(
+    Three_letter_code %in% c("JTN", "JYL", "KJU", "KNP", "KPM", "KXM", "LCT", "LMN", "LPT", 
+                             "LYK", "MAU", "MCH", "MTJ", "MYV", "NLJ", "PAE", "PAJ", "PKN", 
+                             "PMP", "PNL") ~ "overwinterer",
+    
+    Three_letter_code %in% c("PVK", "PLA", "MJA", "MCV", "KTP", "KNX", "KMY", "KMC", "KKH", 
+                             "KET", "JXM", "JTC", "JLU", "JHY", "JHM", "JAE", "HPV", "HPL", 
+                             "CCU") ~ "early_northward_migration",
+    
+    TRUE ~ "late_northward_migration"  # default case for all others
   ))
+
 
 complete_dataset |>
   count(Strategy)
-# migrant n=29385, overwinterer n=14367
+# early_northward_migrant n=12568, late_northward_migration = 16817, overwinterer n=14367
 
 ##############################################################################
 # Converting dataset to work with duration time, etc
@@ -148,7 +155,7 @@ p1 <- ggplot(behaviors |> filter(visually_foraging < 200),
              aes(x = as.factor(Week), y = visually_foraging, 
              fill = Strategy)) +
   geom_boxplot() +
-  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
+  scale_fill_manual(values = c("#FF9999", "#1ED760", "#66B3FF")) +
   theme_minimal(base_size = 14) +
   labs(
     title = "Visually foraging by Strategy",
@@ -224,15 +231,16 @@ summary(glmer2)
 
 AIC(glmer1, glmer2)
 
-glmer4 <- glmer(visually_foraging ~Week * Strategy + (1 | Three_letter_code) ,
+glmer3 <- glmer(visually_foraging ~Week * Strategy + (1 | Three_letter_code) ,
   family = Gamma(link = "log"),
   data = behaviors,
   control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5)))
-summary(glmer4)
+summary(glmer3)
 
-AIC(glmer1, glmer4)
+AIC(glmer1, glmer3)
 
-### although the AIC of glmer4 is lower than glmer1, the model is not necessarily better due failed convergence of glmer4. 
+
+#### GLM 3 shows best AIC with 324637.6!!!!!!!!
 
 #m0 <- lm(visually_foraging ~ Strategy, data = behaviors)
 #print(m0)
@@ -271,18 +279,38 @@ AIC(glmer1, glmer4)
 # Adding Transect_ID, Tide or Habitat does not make it a better predictive model for the duration of foraging walking.
 
 new_data <- unique(behaviors[, c("Week", "Strategy", "Transect_ID", "Habitat", "Tide", "Three_letter_code")])
-new_data$predicted <- predict(glmer1, newdata = new_data, re.form = ~(1 | Three_letter_code), type = "response")
+new_data$predicted <- predict(glm3, newdata = new_data, re.form = ~(1 | Three_letter_code), type = "response")
 
+new_data$Strategy <- factor(new_data$Strategy, levels = c(
+    "early_northward_migration", "late_northward_migration", "overwinterer"
+))
 
 p3 <- p2 +
-  geom_point(data = new_data,
-             aes(x = as.factor(Week), y = predicted, shape = Strategy, group = Strategy),
-             color = ifelse(new_data$Strategy == "migrant", "#c77575", "#5190cf"),
-             size = 3,
-             position = position_dodge(width = 0.6)) +
-  scale_shape_manual(values = c("migrant" = 17, "overwinterer" = 18))
-
+  geom_point(
+    data = new_data,
+    aes(
+      x = as.factor(Week),
+      y = predicted,
+      shape = Strategy,
+      group = Strategy,
+      color = Strategy
+    ),
+    size = 2,
+    position = position_dodge(width = 0.6)
+  ) +
+  scale_shape_manual(values = c(
+    "overwinterer" = 18,
+    "late_northward_migration" = 19,
+    "early_northward_migration" = 16  # add it here
+  )) +
+  scale_color_manual(values = c(
+    "overwinterer" = "#5190cf",
+    "late_northward_migration" = "#0FA85B",
+    "early_northward_migration" = "#c77575"  # and here
+  )) +
+  theme_minimal()
 p3
+
 
 wilcox.test(visually_foraging ~ Strategy, data = behaviors)
 ### W = 162771137, p-value < 2.2e-16
@@ -294,13 +322,13 @@ behaviors %>%
 
 p4 <- p3 +
   geom_text(data = data.frame(
-    Week = factor(c(12, 13, 16, 17, 18, 19, 20, 21)),
-    label = c("***", "***", "***", "***", "***", "***", "***", "***"),
-    y = c(130, 110, 130, 130, 130, 130, 120, 120)
+    Week = factor(c(13, 16, 17, 18, 19, 20, 21)),
+    label = c("***", "***", "***", "***", "***", "***", "***"),
+    y = c(115, 120, 118, 118, 130, 115, 120)
   ),
   aes(x = Week, y = y, label = label),
   vjust = -0.5,
-  size = 6,
+  size = 4,
   inherit.aes = FALSE)  # <--- This is the key!
 p4
 
@@ -315,7 +343,7 @@ point_behaviors <- complete_dataset |>
   filter(Behavior.type == "POINT") |>
   filter(!Observation_id %in% c("KET_20.03", "KET.20.03", "LEA_21.05")) |>
   group_by(Three_letter_code, Behavior, Strategy, Week, Tide, Habitat,   
-           Observation_id, Transect_ID, Date.x, Media.duration..s.) |>
+           Observation_id, Transect_ID, Date.x, Media.duration..s., Social_behavior, Aggressive.or.submissive) |>
   summarise(Behavior_Count = n(), .groups = "drop")|>
   mutate(Behavior_Rate = Behavior_Count / Media.duration..s.) |>
   filter(Week %in% c(12, 13, 16, 17, 18 ,19, 20 ,21))
@@ -334,7 +362,7 @@ p5a <- ggplot(point_behaviors |> filter(Behavior == "Probing"),
              aes(x = as.factor(Week), y = Behavior_Rate, 
                  fill = Strategy)) +
   geom_boxplot() +
-  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
+  scale_fill_manual(values = c("#FF9999", "#1ED760", "#66B3FF")) +
   theme_minimal(base_size = 14) +
   labs(
     title = "Probing by Strategy",
@@ -369,8 +397,12 @@ glmer8 <- glmer(Behavior_Rate ~ Week * Strategy + (1 | Three_letter_code)
             control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5)))
 summary(glmer8)
 ## Nothing explains the difference between probing ?
-
 AIC(glmer6, glmer8)
+
+glm4 <- glm(Behavior_Rate ~ Week + Strategy + Week * Strategy, 
+                 family = Gamma(link = "log"),
+                 data = subset(point_behaviors, Behavior == "Probing"))
+summary(glm4)
 
 point_behaviors %>%
   filter(Behavior == "Probing") %>%
@@ -407,7 +439,7 @@ p6a <- ggplot(point_behaviors |> filter(Behavior == "Surface_pecking"),
              aes(x = as.factor(Week), y = Behavior_Rate, 
                  fill = Strategy)) +
   geom_boxplot() +
-  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
+  scale_fill_manual(values = c("#FF9999", "#1ED760", "#66B3FF")) +
   theme_minimal(base_size = 14) +
   labs(
     title = "Surface pecking by Strategy",
@@ -446,6 +478,11 @@ summary(glmer11)
 
 AIC(glmer9, glmer11)
 
+glm5 <- glm(Behavior_Rate ~ Week + Strategy + Week * Strategy, 
+            family = Gamma(link = "log"),
+            data = subset(point_behaviors, Behavior == "Surface_pecking"))
+summary(glm5)
+
 point_behaviors %>%
   filter(Behavior == "Surface_pecking") %>%
   group_by(Week) %>%
@@ -455,7 +492,7 @@ p7a <- ggplot(point_behaviors |> filter(Behavior == "Turning_stuff"),
              aes(x = as.factor(Week), y = Behavior_Rate, 
                  fill = Strategy)) +
   geom_boxplot() +
-  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
+  scale_fill_manual(values = c("#FF9999", "#1ED760",  "#66B3FF")) +
   theme_minimal(base_size = 14) +
   labs(
     title = "Turning by Strategy",
@@ -468,6 +505,11 @@ p7b <- p7a + geom_text(data = counts_point |> filter(Behavior == "Turning_stuff"
 
 p7b
 
+glm6 <- glm(Behavior_Rate ~ Week + Strategy + Week * Strategy, 
+            family = Gamma(link = "log"),
+            data = subset(point_behaviors, Behavior == "Turning_stuff"))
+summary(glm6)
+
 p_point_behavior <- p5b + p6b + p7b
 p_point_behavior
 
@@ -475,7 +517,7 @@ p_point_behavior
 #                           pairwise ~ Strategy | Behavior)
 #print(emmeans_results)
 
-wilcox.test(Behavior_Rate ~ Strategy, data = point_behaviors)
+##wilcox.test(Behavior_Rate ~ Strategy, data = point_behaviors)
 # W = 57959, p-value = 0.2195
 
 point_behaviors %>%
@@ -495,7 +537,7 @@ summary(aov(Behavior_Rate ~ Behavior * Strategy, data = point_behaviors))
 # Plotting the results
 p9 <- ggplot(point_behaviors |> filter(!Behavior == "Swallowing"), aes(x = Behavior, y = Behavior_Rate, fill = Strategy)) +
   geom_boxplot(position = position_dodge(width = 0.8)) +
-  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
+  scale_fill_manual(values = c("#FF9999","#1ED760", "#66B3FF")) +
   theme_minimal(base_size = 14) +
   labs(
     title = "Behavior Rate per Strategy",
@@ -559,7 +601,7 @@ p_stage <- ggplot(stage_behavior,
                   aes(x = as.factor(Week), y = Behavior_Rate, 
                       fill = Strategy)) +
   geom_boxplot() +
-  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
+  scale_fill_manual(values = c("#FF9999","#1ED760", "#66B3FF")) +
   theme_minimal(base_size = 14) +
   labs(
     title = "Stage Behaviour by Strategy",
@@ -580,7 +622,7 @@ p11a <- ggplot(stage_behavior |> filter(Behavior == "Walking"),
               aes(x = as.factor(Week), y = Behavior_Rate, 
                   fill = Strategy)) +
   geom_boxplot() +
-  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
+  scale_fill_manual(values = c("#FF9999","#1ED760", "#66B3FF")) +
   theme_minimal(base_size = 14) +
   labs(
     title = "Walking by Strategy",
@@ -620,7 +662,7 @@ p12a <- ggplot(stage_behavior |> filter(Behavior == "Alert"),
               aes(x = as.factor(Week), y = Behavior_Rate, 
                   fill = Strategy)) +
   geom_boxplot() +
-  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
+  scale_fill_manual(values = c("#FF9999", "#1ED760", "#66B3FF")) +
   theme_minimal(base_size = 14) +
   labs(
     title = "Alert by Strategy",
@@ -642,7 +684,7 @@ summary(glmer13)
 p12c <- p12b +
   geom_text(data = data.frame(
     Week = factor(c(18, 19, 21)),
-    label = c("***", "***", "***"),
+    label = c("***", "***", "**"),
     y = c(1.00, 0.7, 0.7)
   ),
   aes(x = Week, y = y, label = label),
@@ -660,7 +702,7 @@ p13a <- ggplot(stage_behavior |> filter(Behavior == "Digging"),
               aes(x = as.factor(Week), y = Behavior_Rate, 
                   fill = Strategy)) +
   geom_boxplot() +
-  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
+  scale_fill_manual(values = c("#FF9999", "#1ED760","#66B3FF")) +
   theme_minimal(base_size = 14) +
   labs(
     title = "Digging by Strategy",
@@ -678,11 +720,23 @@ glmer14 <- glmer(Behavior_Rate ~ Week * Strategy + (1 | Three_letter_code),
                 control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5)))
 summary(glmer14)
 
+p13c <- p13b +
+  geom_text(data = data.frame(
+    Week = factor(18),
+    label = "**",
+    y = 0.7
+  ),
+  aes(x = Week, y = y, label = label),
+  vjust = -0.5,
+  size = 6,
+  inherit.aes = FALSE)  # <--- This is the key!
+p13c
+
 p14a <- ggplot(stage_behavior |> filter(Behavior == "Routing"),
               aes(x = as.factor(Week), y = Behavior_Rate, 
                   fill = Strategy)) +
   geom_boxplot() +
-  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
+  scale_fill_manual(values = c("#FF9999", "#1ED760", "#66B3FF")) +
   theme_minimal(base_size = 14) +
   labs(
     title = "Routing by Strategy",
@@ -699,7 +753,7 @@ p15a <- ggplot(stage_behavior |> filter(Behavior == "Handling_prey"),
               aes(x = as.factor(Week), y = Behavior_Rate, 
                   fill = Strategy)) +
   geom_boxplot() +
-  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
+  scale_fill_manual(values = c("#FF9999", "#1ED760", "#66B3FF")) +
   theme_minimal(base_size = 14) +
   labs(
     title = "Handling prey by Strategy",
@@ -720,9 +774,9 @@ summary(glmer15)
 
 p15c <- p15b +
   geom_text(data = data.frame(
-    Week = factor(c(13, 16, 17, 18, 21)),
-    label = c("***", "*", "***", "***", "***"),
-    y = c(1.00, 0.5, 0.75, 1.0, 0.7)
+    Week = factor(c(13, 17, 18, 21)),
+    label = c("***", "***", "***", "***"),
+    y = c(1.00, 0.75, 1.0, 0.7)
   ),
   aes(x = Week, y = y, label = label),
   vjust = -0.5,
@@ -734,14 +788,14 @@ p_stage_behavior <- p11b + p12b + p13b + p14b + p15b
 p_stage_behavior
 ggsave("stage_behaviors_strategy.png", plot = p_stage_behavior, width = 18, height = 10, dpi = 300)
 
-p_stage_filtered <- p11c + p12c + p15c
+p_stage_filtered <- p11c + p12c + p13c + p15c
 p_stage_filtered
 ggsave("stage_behaviors_strategy_filtered.png", plot = p_stage_filtered, width = 25, height = 10, dpi = 300)
 ##### Looking at whether strategy influences duration
 #aov(Behavior_Rate ~ Behavior * Strategy, data = stage_behavior_summary)
 #summary(aov(Behavior_Rate ~ Behavior * Strategy, data = #stage_behavior_summary))
 
-wilcox.test(Behavior_Rate ~ Strategy, data = stage_behavior)
+#wilcox.test(Behavior_Rate ~ Strategy, data = stage_behavior)
 # W = 2862355, p-value = 0.715
 
 #####
@@ -752,7 +806,7 @@ wilcox.test(Behavior_Rate ~ Strategy, data = stage_behavior)
 
 p16 <- ggplot(stage_behavior , aes(x = Behavior, y = Behavior_Rate, fill = Strategy)) +
   geom_boxplot(position = position_dodge(width = 0.8)) +
-  scale_fill_manual(values = c("#FF9999", "#66B3FF")) +
+  scale_fill_manual(values = c("#FF9999","#1ED760", "#66B3FF")) +
   theme_minimal(base_size = 14) +
   labs(
     title = "Behavior Rate per Strategy",
@@ -761,18 +815,18 @@ p16 <- ggplot(stage_behavior , aes(x = Behavior, y = Behavior_Rate, fill = Strat
 p16
 
 # I want there to be a "***" above the boxplots of routing and alert, and "* above walking
-p17 <- p16 +
-  geom_text(data = data.frame(Behavior = "Routing", y = 0.9, label = "***"),
-            aes(x = Behavior, y = y, label = label),
-            vjust = -1, size = 5, inherit.aes = FALSE) +
-  geom_text(data = data.frame(Behavior = "Alert", y = 0.9, label = "***"),
-            aes(x = Behavior, y = y, label = label),
-            vjust = -1, size = 5, inherit.aes = FALSE) +
-  geom_text(data = data.frame(Behavior = "Walking", y = 0.9, label = "*"),
-            aes(x = Behavior, y = y, label = label),
-            vjust = -1, size = 5, inherit.aes = FALSE)
+#p17 <- p16 +
+#  geom_text(data = data.frame(Behavior = "Routing", y = 0.9, label = "***"),
+#            aes(x = Behavior, y = y, label = label),
+#            vjust = -1, size = 5, inherit.aes = FALSE) +
+#  geom_text(data = data.frame(Behavior = "Alert", y = 0.9, label = "***"),
+#            aes(x = Behavior, y = y, label = label),
+#            vjust = -1, size = 5, inherit.aes = FALSE) +
+#  geom_text(data = data.frame(Behavior = "Walking", y = 0.9, label = "*"),
+#            aes(x = Behavior, y = y, label = label),
+#            vjust = -1, size = 5, inherit.aes = FALSE)
 
-p17
+#p17
 
 ggsave("stage_behaviors_strategy_boxplot.png", plot = p16, width = 18, height = 10, dpi = 300)
 
