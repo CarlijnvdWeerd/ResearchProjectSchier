@@ -373,66 +373,36 @@ p5a
 p5b <- p5a + geom_text(data = counts_point |> filter(Behavior == "Probing"), aes(x = as.factor(Week), 
                                                y = 1.6, 
                                                label = paste0("n=", n)),
-                            position = position_dodge(width = 0.8), size = 4)
+                            position = position_dodge(width = 0.8), size = 3)
 p5b
-
-glmer6 <- glmer(Behavior_Rate ~ Week * Strategy + (1 | Three_letter_code), 
-                 family = Gamma(link = "log"),
-                 data = subset(point_behaviors, Behavior == "Probing"),
-                 control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5)))
-summary(glmer6)
-
-glmer7 <- glmer(Behavior_Rate ~ Strategy + (1 | Week) + (1 | Three_letter_code), 
-                 family = Gamma(link = "log"),
-                 data = subset(point_behaviors, Behavior == "Probing"),
-                 control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5)))
-summary(glmer7)
-
-AIC(glmer6, glmer7)
-
-glmer8 <- glmer(Behavior_Rate ~ Week * Strategy + (1 | Three_letter_code) 
-            + (1| Transect_ID) + (1|Tide) + (1|Habitat), data = subset
-            (point_behaviors, Behavior == "Probing"),
-            family = Gamma(link = "log"),
-            control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5)))
-summary(glmer8)
-## Nothing explains the difference between probing ?
-AIC(glmer6, glmer8)
 
 glm4 <- glm(Behavior_Rate ~ Week + Strategy + Week * Strategy, 
                  family = Gamma(link = "log"),
                  data = subset(point_behaviors, Behavior == "Probing"))
 summary(glm4)
 
+glm5 <- glm(Behavior_Rate ~  Week * Strategy + Transect_ID + Habitat + Tide, 
+            family = Gamma(link = "log"),
+            data = subset(point_behaviors, Behavior == "Probing"))
+summary(glm5)
+
+glm6 <- glm(Behavior_Rate ~ Week * Strategy, 
+            family = Gamma(link = "log"),
+            data = subset(point_behaviors, Behavior == "Probing"))
+summary(glm6)
+
+AIC(glm4, glm5, glm6)
+
 point_behaviors %>%
   filter(Behavior == "Probing") %>%
   group_by(Week) %>%
   summarise(p_value = kruskal.test(Behavior_Rate ~ Strategy)$p.value)
 
+dunn1 <- dunnTest(Behavior_Rate ~ Strategy, 
+                 data = subset(point_behaviors, Behavior == "Probing"), 
+                 method = "bonferroni")
+dunn1
 
-## making models to understand the trend of the probing 
-##m6 <- lm(Behavior_Rate ~ Week * Strategy, data = subset(point_behaviors, Behavior == "Probing"))
-#summary(m6)
-
-
-#m7 <- lmer(Behavior_Rate ~ Week * Strategy + (1 | Three_letter_code), 
-#                 data = subset(point_behaviors, Behavior == "Probing"))
-#summary(m7)
-
-#m8 <- lmer(Behavior_Rate ~ Week * Strategy + (1 | Three_letter_code) 
-#            + (1| Transect_ID) + (1|Tide) + (1|Habitat), data = subset
-#            (point_behaviors, Behavior == "Probing"))
-#summary(m8)
-#anova(m7, m8)
-
-#m9 <- lmer(Behavior_Rate ~ Week * Strategy + (1|Three_letter_code)
-#            + (1| Habitat), data = subset(point_behaviors, Behavior == 
-#                                            "Probing"))
-#summary(m9)
-#anova(m7,m9)
-#anova(m8,m9)
-
-#t.test(Behavior_Rate ~ Strategy, data = subset(point_behaviors, Behavior == "Probing"))
 
 
 p6a <- ggplot(point_behaviors |> filter(Behavior == "Surface_pecking"),
@@ -1000,10 +970,21 @@ habitat_counts <- complete_dataset |>
   filter(!Week %in% c("9", "11", "12", "13", "15"))
 
 habitat_counts$Habitat[habitat_counts$Habitat == "Combination "] <- "Combination"
+
 complete_dataset$Habitat <- complete_dataset$Habitat |>
   str_trim()
+
+habitat_counts <- complete_dataset |>
+  filter(!Week %in% c("9", "11", "12", "13", "15")) |>
+  group_by(Habitat, Strategy, Week) |>
+  summarise(n = n_distinct(Observation_id), .groups = "drop")
+
+# Now join back to complete_dataset
 complete_dataset <- complete_dataset |>
-  filter(!Week %in% c("9", "11", "12", "13", "15"))
+  filter(!Week %in% c("9", "11", "12", "13", "15")) |>
+  left_join(habitat_counts, by = c("Habitat", "Strategy", "Week"))
+
+
 habitat_counts$Habitat <- habitat_counts$Habitat |>
   str_trim()
 
@@ -1069,22 +1050,22 @@ p_all_habitat
 
 glm11 <- glm(n ~ Week + Habitat + Strategy, 
             family = Gamma(link = "log"),
-            data = habitat_counts)
+            data = complete_dataset)
 summary(glm11)
 
 glm12 <- glm(n ~ Week * Habitat + Strategy, 
             family = Gamma(link = "log"),
-            data = habitat_counts)
+            data = complete_dataset)
 summary(glm12)
 
 glm13 <- glm(n ~ Week * Strategy + Habitat, 
             family = Gamma(link = "log"),
-            data = habitat_counts)
+            data = complete_dataset)
 summary(glm13)
 
 glm14 <- glm(n ~ Habitat * Strategy + Week, 
             family = Gamma(link = "log"),
-            data = habitat_counts)
+            data = complete_dataset)
 summary(glm14)
 
 AIC(glm11, glm12, glm13, glm14)
@@ -1092,14 +1073,26 @@ AIC(glm11, glm12, glm13, glm14)
 
 glm15 <- glm(n ~ Habitat * Strategy * Week, 
              family = Gamma(link = "log"),
-             data = habitat_counts)
+             data = complete_dataset)
 summary(glm15)
 
 AIC(glm11,glm14, glm15)
-## glm11 is best according to AIC
+## glm15 is best according to AIC
 
-kruskal.test(n ~ Strategy, data = habitat_counts)
-# Kruskal-Wallis chi-squared = 1.9529, df = 2, p-value = 0.3767
+kruskal.test(n ~ Strategy, data = complete_dataset)
+# Kruskal-Wallis chi-squared = 2321.7, df = 2, p-value < 2.2e-16
+
+library(ggplot2)
+library(dplyr)
+library(FSA)
+library(multcompView)
+
+#Run Dunn Test
+dunn <- dunnTest(n ~ Strategy, data = complete_dataset, 
+                 method = "bonferroni")
+dunn
+dunn_df <- dunn$res
+
 
 ggsave("habitat_usage_strategy.png", plot = p_all_habitat, width = 18, height = 10, dpi = 300)
 
