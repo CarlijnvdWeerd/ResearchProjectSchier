@@ -312,7 +312,7 @@ p3 <- p2 +
 p3
 
 
-wilcox.test(visually_foraging ~ Strategy, data = behaviors)
+#wilcox.test(visually_foraging ~ Strategy, data = behaviors)
 ### W = 162771137, p-value < 2.2e-16
 
 behaviors %>%
@@ -829,4 +829,277 @@ p16
 #p17
 
 ggsave("stage_behaviors_strategy_boxplot.png", plot = p16, width = 18, height = 10, dpi = 300)
+
+
+transect_counts <- complete_dataset |>
+  group_by(Transect_ID, Strategy, Week) |>
+  distinct() |>
+  summarise(n = n_distinct(Observation_id), .groups = "drop") 
+
+p_1.1 <- ggplot(complete_dataset |> filter(Transect_ID == "1.1"), aes(x = as.factor(Week), fill = Strategy)) +
+  geom_bar(stat = "count", position = "dodge") +
+  scale_fill_manual(values = c("#FF9999", "#1ED760", "#66B3FF")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Strategy per Transect",
+    x = "Week",
+    y = "Counts"
+  ) 
+p_1.1
+
+p_1.1b <- p_1.1 + geom_text(data = transect_counts |> filter(Transect_ID == "1.1"), aes(x = as.factor(Week), y = 1300,                                             label = paste0("n=", n)),
+                         position = position_dodge(width = 0.8), size = 2)
+
+p_1.1b
+
+p_1.2 <- ggplot(complete_dataset |> filter(Transect_ID == "1.2"), aes(x = as.factor(Week), fill = Strategy)) +
+  geom_bar(stat = "count", position = "dodge") +
+  scale_fill_manual(values = c("#FF9999", "#1ED760", "#66B3FF")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Strategy per Transect",
+    x = "Transect ID",
+    y = "Count"
+  )
+p_1.2
+
+p_1.2b <- p_1.2 + geom_text(data = transect_counts |> filter(Transect_ID == "1.2"), aes(x = as.factor(Week), y = 1100,                                             label = paste0("n=", n)),
+                            position = position_dodge(width = 0.8), size = 2)
+
+p_1.2b
+
+p_1.3 <- ggplot(complete_dataset |> filter(Transect_ID == "1.3"), aes(x = as.factor(Week), fill = Strategy)) +
+  geom_bar(stat = "count", position = "dodge") +
+  scale_fill_manual(values = c("#FF9999", "#1ED760", "#66B3FF")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Strategy per Transect",
+    x = "Transect ID",
+    y = "Count"
+  )
+p_1.3
+
+p_2.1 <- ggplot(complete_dataset |> filter(Transect_ID == "2.1"), aes(x = as.factor(Week), fill = Strategy)) +
+  geom_bar(stat = "count", position = "dodge") +
+  scale_fill_manual(values = c("#FF9999", "#1ED760", "#66B3FF")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Strategy per Transect",
+    x = "Transect ID",
+    y = "Count"
+  )
+p_2.1
+
+p_2.2 <- ggplot(complete_dataset |> filter(Transect_ID == "2.2"), aes(x = as.factor(Week), fill = Strategy)) +
+  geom_bar(stat = "count", position = "dodge") +
+  scale_fill_manual(values = c("#FF9999", "#1ED760", "#66B3FF")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Strategy per Transect",
+    x = "Transect ID",
+    y = "Count"
+  )
+p_2.2
+
+p_alltransect <- p_1.1 + p_1.2 + p_1.3 + p_2.1 
+p_alltransect
+
+complete_dataset$Transect_ID <- as.factor(complete_dataset$Transect_ID)
+transect_dataset <- complete_dataset |> 
+  group_by(Transect_ID, Strategy, Week) |> 
+  summarise(Count = n_distinct(Observation_id), .groups = "drop")
+transect_dataset$Transect_ID <- as.factor(transect_dataset$Transect_ID)
+
+transect_counts$Transect_ID <- as.factor(transect_counts$Transect_ID)
+
+p_early <- ggplot(complete_dataset |> filter(Strategy == "early_northward_migration"), aes(x = as.factor(Week), fill = Transect_ID)) +
+  geom_bar(stat = "count", position = "dodge") +
+  scale_fill_manual(values = c("#FF9999", "#E81C2D", "#DB6A39","#E8749C","#F6AAB1" )) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Early Northward Migration per Week",
+    x = "Week",
+    y = "Count"
+  )
+p_early
+
+p_early <- p_early + geom_text(data = transect_counts |> filter(Strategy == "early_northward_migration"), aes(x = as.factor(Week), y = 2000,                                             label = paste0("n=", n)),
+                         position = position_dodge(width = 0.8), size = 2)
+p_early
+
+p_late <- ggplot(complete_dataset |> filter(Strategy == "late_northward_migration"), aes(x = as.factor(Week), fill = Transect_ID)) +
+  geom_bar(stat = "count", position = "dodge") +
+  scale_fill_manual(values = c("#FF9999", "#E81C2D", "#DB6A39","#E8749C","#F6AAB1")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Late Northward Migration per Week",
+    x = "Week",
+    y = "Count"
+  )
+p_late
+
+p_late <- p_late + geom_text(data = transect_counts |> filter(Strategy == "late_northward_migration"), aes(x = as.factor(Week), y = 3500,                                             label = paste0("n=", n)),
+                           position = position_dodge(width = 0.8), size = 2)
+p_late
+
+p_overwinterer <- ggplot(complete_dataset |> filter(Strategy == "overwinterer"), aes(x = as.factor(Week), fill = Transect_ID)) +
+  geom_bar(stat = "count", position = "dodge") +
+  scale_fill_manual(values = c("#FF9999", "#E81C2D", "#DB6A39","#E8749C","#F6AAB1")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Overwinterer per Week",
+    x = "Week",
+    y = "Count"
+  )
+p_overwinterer
+
+p_overwinterer <- p_overwinterer + geom_text(data = transect_counts |> filter(Strategy == "overwinterer"), aes(x = as.factor(Week), y = 3200,                                             label = paste0("n=", n)),
+                             position = position_dodge(width = 0.8), size = 2)
+p_overwinterer
+
+p_all_strategies <- p_early / p_late / p_overwinterer
+p_all_strategies
+ggsave("transect_strategy_week.png", plot = p_all_strategies, width = 18, height = 10, dpi = 300)
+
+qqnorm(transect_dataset$Count)
+
+glm7 <- glm(Count ~ Week + Transect_ID + Strategy, 
+            family = Gamma(link = "log"),
+            data = transect_dataset)
+summary(glm7)
+
+glm8 <- glm(Count ~ Week * Transect_ID + Strategy, 
+            family = Gamma(link = "log"),
+            data = transect_dataset)
+summary(glm8)
+
+glm9 <- glm(Count ~ Week * Strategy + Transect_ID, 
+            family = Gamma(link = "log"),
+            data = transect_dataset)
+summary(glm9)
+
+glm10 <- glm(Count ~ Transect_ID * Strategy + Week, 
+            family = Gamma(link = "log"),
+            data = transect_dataset)
+summary(glm10)
+
+## glm8 is the best model according to AIC
+
+lm8 <- lm(Count ~ Week * Transect_ID + Strategy, 
+            data = transect_dataset)
+summary(lm8)
+# if would use linear instead of generalized linear there would be significant difference in use of transect points between early and late arrivals 
+
+############################################################################
+## Habitat usage 
+
+habitat_counts <- complete_dataset |>
+  group_by(Habitat, Strategy, Week) |>
+  distinct() |>
+  summarise(n = n_distinct(Observation_id), .groups = "drop") |>
+  filter(!Week %in% c("9", "11", "12", "13", "15"))
+
+habitat_counts$Habitat[habitat_counts$Habitat == "Combination "] <- "Combination"
+complete_dataset$Habitat <- complete_dataset$Habitat |>
+  str_trim()
+complete_dataset <- complete_dataset |>
+  filter(!Week %in% c("9", "11", "12", "13", "15"))
+habitat_counts$Habitat <- habitat_counts$Habitat |>
+  str_trim()
+
+p_habitat <- ggplot(complete_dataset, aes(x = as.factor(Week), fill = Habitat)) +
+  geom_bar(stat = "count", position = "dodge") +
+  scale_fill_manual(values = c("#A2A8B4", "#D6C78A", "#66B3FF")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Habitat Usage per Week",
+    x = "Week",
+    y = "Count"
+  ) +
+  facet_wrap(~Strategy)
+p_habitat
+
+p_early_hab <- ggplot(complete_dataset |> filter(Strategy == "early_northward_migration"), aes(x = as.factor(Week), fill = Habitat)) +
+  geom_bar(stat = "count", position = "dodge") +
+  scale_fill_manual(values = c("#A2A8B4", "#D6C78A", "#66B3FF")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Habitat Usage Early Northward Migration",
+    x = "Week",
+    y = "Count"
+  )
+p_early_hab
+
+p_early_hab <- p_early_hab + geom_text(data = habitat_counts |> filter(Strategy == "early_northward_migration"), aes(x = as.factor(Week), y = 2100,                                             label = paste0("n=", n)),
+                                             position = position_dodge(width = 0.8), size = 3)
+p_early_hab
+
+p_late_hab <- ggplot(complete_dataset |> filter(Strategy == "late_northward_migration"), aes(x = as.factor(Week), fill = Habitat)) +
+  geom_bar(stat = "count", position = "dodge") +
+  scale_fill_manual(values = c("#A2A8B4", "#D6C78A", "#66B3FF")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Habitat Usage Late Northward Migration **",
+    x = "Week",
+    y = "Count"
+  )
+p_late_hab
+
+p_late_hab <- p_late_hab + geom_text(data = habitat_counts |> filter(Strategy == "late_northward_migration"), aes(x = as.factor(Week), y = 3100,                                             label = paste0("n=", n)),
+                                       position = position_dodge(width = 0.8), size = 3)
+p_late_hab
+
+p_win_hab <- ggplot(complete_dataset |> filter(Strategy == "overwinterer"), aes(x = as.factor(Week), fill = Habitat)) +
+  geom_bar(stat = "count", position = "dodge") +
+  scale_fill_manual(values = c("#A2A8B4", "#D6C78A", "#66B3FF")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Habitat Usage Overwinterers",
+    x = "Week",
+    y = "Count"
+  )
+p_win_hab
+
+p_win_hab <- p_win_hab + geom_text(data = habitat_counts |> filter(Strategy == "overwinterer"), aes(x = as.factor(Week), y = 2600,                                             label = paste0("n=", n)),
+                                     position = position_dodge(width = 0.8), size = 3)
+p_win_hab
+
+p_all_habitat <- p_early_hab / p_late_hab / p_win_hab
+p_all_habitat
+
+glm11 <- glm(n ~ Week + Habitat + Strategy, 
+            family = Gamma(link = "log"),
+            data = habitat_counts)
+summary(glm11)
+
+glm12 <- glm(n ~ Week * Habitat + Strategy, 
+            family = Gamma(link = "log"),
+            data = habitat_counts)
+summary(glm12)
+
+glm13 <- glm(n ~ Week * Strategy + Habitat, 
+            family = Gamma(link = "log"),
+            data = habitat_counts)
+summary(glm13)
+
+glm14 <- glm(n ~ Habitat * Strategy + Week, 
+            family = Gamma(link = "log"),
+            data = habitat_counts)
+summary(glm14)
+
+AIC(glm11, glm12, glm13, glm14)
+## glm14 is the best model according to AIC
+
+glm15 <- glm(n ~ Habitat * Strategy * Week, 
+             family = Gamma(link = "log"),
+             data = habitat_counts)
+summary(glm15)
+
+AIC(glm11,glm14, glm15)
+## glm11 is best according to AIC
+
+kruskal.test(n ~ Strategy, data = habitat_counts)
+# Kruskal-Wallis chi-squared = 1.9529, df = 2, p-value = 0.3767
+
+ggsave("habitat_usage_strategy.png", plot = p_all_habitat, width = 18, height = 10, dpi = 300)
 

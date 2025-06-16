@@ -59,23 +59,90 @@ Social <- Social |>
   group_by(Week, Behavior, Strategy, Tide, Habitat, Transect_ID, Date.x, Media.duration..s., Social_behavior, Aggressive.or.submissive) |>
   summarise(Social_Count = mean(Behavior_Count, na.rm = TRUE), .groups = "drop")
   
-  Social_annotated <- Social |>
-    group_by(Strategy, Aggressive.or.submissive) |>
-    mutate(Count = n()) |>
-    ungroup()
+Social_annotated <- Social |>   
+  select(Three_letter_code, Week, Strategy, Aggressive.or.submissive) |>
+  distinct() |>
+  group_by(Week, Strategy, Aggressive.or.submissive)
   
+  
+## col geom with x= as.factor(Week, y = Aggressive.or.submissive, fill = Strategy, data = Social_annotated)
 
-
-
-p1 <- ggplot(Social,
-             aes(x = as.factor(Week), y = Aggressive.or.submissive, 
-                 fill = Strategy)) +
-  geom_boxplot() +
-  scale_fill_manual(values = c("#FF9999", "#1ED760", "#66B3FF")) +
+p1 <- ggplot(Social_annotated,
+             aes(x = as.factor(Week),
+                 y = Count,
+                 fill = interaction(Strategy, Aggressive.or.submissive))) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(
+    values = c(
+      "overwinterer.Aggressive" = "#66B3FF",
+      "overwinterer.Submissive" = "#A0CFFF",
+      "overwinterer.Both" = "#3C4DB2",
+      "early_northward_migration.Aggressive" = "#1ED760",
+      "early_northward_migration.Submissive" = "#A3E4C1",
+      "early_northward_migration.Both" = "#0B5024",
+      "late_northward_migration.Aggressive" = "#9370DB",
+      "late_northward_migration.Submissive" = "#C8A2C8",
+      "late_northward_migration.Both" = "#5B2E91"
+    )
+  ) +
   theme_minimal(base_size = 14) +
-  labs(
-    title = "Social behaviour by Strategy",
+  labs( title = "Social Behaviour by Strategy and Week",
     x = "Week",
-    y = "Category")
-
+    y = "Count",
+    fill = "Strategy & Behavior"
+  )
 p1
+
+p2 <- Social_annotated |>
+  filter(Strategy == "early_northward_migration") |>
+  ggplot(aes(x = as.factor(Week), fill = Aggressive.or.submissive)) +
+  geom_bar(position = "dodge", stat = "count") +
+  ylim(0, 4) +
+  scale_fill_manual(values = c("Aggressive" = "#1ED760",
+                               "Submissive" = "#A3E4C1",
+                               "Both" = "#0B5024")) +
+  labs(title = "Social Behavior in Early Northward Migration",
+       x = "Week",
+       y = "Count",
+       fill = "Behavior Type") +
+  theme_minimal(base_size = 10)
+
+p2
+
+p3 <- Social_annotated |>
+  filter(Strategy == "late_northward_migration") |>
+  ggplot(aes(x = as.factor(Week), fill = Aggressive.or.submissive)) +
+  geom_bar(position = "dodge", stat = "count") +
+  ylim(0, 4) +
+  scale_fill_manual(values = c("Aggressive" = "#9370DB",
+                               "Submissive" = "#C8A2C8",
+                               "Both" = "#5B2E91")) +
+  labs(title = "Social Behavior in Late Northward Migration",
+       x = "Week",
+       y = "Count",
+       fill = "Behavior Type") +
+  theme_minimal(base_size = 10)
+p3
+
+p4 <- Social_annotated |>
+  filter(Strategy == "overwinterer") |>
+  ggplot(aes(x = as.factor(Week), fill = Aggressive.or.submissive)) +
+  geom_bar(position = "dodge", stat = "count") +
+  ylim(0, 4) +
+  scale_fill_manual(values = c("Aggressive" = "#66B3FF",
+                               "Submissive" = "#A0CFFF",
+                               "Both" = "#3C4DB2")) +
+  labs(title = "Social Behavior in Overwinterers",
+       x = "Week",
+       y = "Count",
+       fill = "Behavior Type") +
+  theme_minimal(base_size = 10)
+p4
+  
+# Combine all plots into one figure
+library(gridExtra)
+p5 <- grid.arrange(p2, p3, p4, ncol = 3)
+# Save the combined plot
+ggsave("Social_Behavior_by_Strategy_and_Week.png", plot = p5, width = 12, height = 6)
+
+
