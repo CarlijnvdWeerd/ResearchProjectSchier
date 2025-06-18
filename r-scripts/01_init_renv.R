@@ -13,6 +13,7 @@ install.packages('lubridate')
 install.packages('lme4')
 install.packages("emmeans")
 install.packages("gridExtra")
+install.packages("MuMIn")
 
 ## open libraries
 library(tidyverse)
@@ -26,3 +27,6 @@ library(lubridate)
 library(lme4)
 library(emmeans)
 library(gridExtra)
+library(MuMIn)
+
+

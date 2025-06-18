@@ -9,7 +9,6 @@ behaviors <- behaviors |>
                                  total_duration), gap_time = Media.duration..s. - total_duration) |>
   rename(visually_foraging = gap_time) 
 
-
 # Calculate counts per Week and Strategy
 counts <- behaviors |>
   group_by(Week, Strategy) |>
