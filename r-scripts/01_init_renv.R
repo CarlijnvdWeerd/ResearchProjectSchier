@@ -12,6 +12,7 @@ install.packages('caret')
 install.packages('lubridate')
 install.packages('lme4')
 install.packages("emmeans")
+install.packages("gridExtra")
 
 ## open libraries
 library(tidyverse)
@@ -24,3 +25,4 @@ library(caret)
 library(lubridate)
 library(lme4)
 library(emmeans)
+library(gridExtra)
