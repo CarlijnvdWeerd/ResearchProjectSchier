@@ -86,26 +86,33 @@ durations$Duration <- as.numeric(as.character(durations$Duration))
 
 
 # Combine point and duration events
-behaviors <- behaviors |> bind_rows(behaviors |> 
-    select(Observation_id, Behavior, Time, Duration, Week,    
-    Three_letter_code, Tide, Habitat, Social_behavior, 
-    Aggressive.or.submissive, Strategy, Transect_ID, Date.x, 
-    Media.duration..s.), durations |>
-    select(Observation_id, Behavior, Time_start, Week_start, 
-    Three_letter_code_start, Tide_start, Habitat_start, 
-    Aggressive.or.submissive_start, , Strategy_start, 
-    Transect_ID_start, Date.x_start, Media.duration..s._start, 
-    Duration) |>
-    rename(Time = Time_start) |>
-    rename(Week = Week_start)|>
-    rename(Three_letter_code = Three_letter_code_start) |>
-    rename(Tide = Tide_start) |>
-    rename(Habitat = Habitat_start) |>
-    rename(Aggressive.or.submissive = Aggressive.or.submissive_start)|>
-    rename(Strategy = Strategy_start) |>
-    rename(Transect_ID = Transect_ID_start) |>
-    rename(Date.x = Date.x_start) |>
-    rename(Media.duration..s. = Media.duration..s._start))
+library(dplyr)
+
+behaviors <- behaviors %>% 
+  bind_rows(
+    behaviors %>% 
+      dplyr::select(Observation_id, Behavior, Time, Duration, Week,    
+                    Three_letter_code, Tide, Habitat, Social_behavior, 
+                    Aggressive.or.submissive, Strategy, Transect_ID, Date.x, 
+                    Media.duration..s.),
+    durations %>%
+      dplyr::select(Observation_id, Behavior, Time_start, Week_start, 
+                    Three_letter_code_start, Tide_start, Habitat_start, 
+                    Aggressive.or.submissive_start, Strategy_start, 
+                    Transect_ID_start, Date.x_start, Media.duration..s._start, 
+                    Duration) %>%
+      rename(Time = Time_start,
+             Week = Week_start,
+             Three_letter_code = Three_letter_code_start,
+             Tide = Tide_start,
+             Habitat = Habitat_start,
+             Aggressive.or.submissive = Aggressive.or.submissive_start,
+             Strategy = Strategy_start,
+             Transect_ID = Transect_ID_start,
+             Date.x = Date.x_start,
+             Media.duration..s. = Media.duration..s._start)
+  )
+
 
 # Sort out
 behaviors <- behaviors |>
@@ -178,6 +185,13 @@ p7a <- ggplot(point_behaviors |> filter(Behavior == "Turning_stuff"),
     y = "Duration Rate")
 p7a
 
+# Fill in the "gaps" 
+behaviors <- behaviors |>
+  group_by(Three_letter_code, Observation_id) |>
+  mutate(total_duration = sum(Duration, na.rm = TRUE)) |>
+  mutate(total_duration = ifelse(is.na(total_duration), 0, 
+                                 total_duration), gap_time = Media.duration..s. - total_duration) |>
+  rename(visually_foraging = gap_time) 
 
 #################################################################################
 # The same analysis but than for the stage event behaviors
