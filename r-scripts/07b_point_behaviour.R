@@ -434,6 +434,15 @@ glmer_poly1 <- glmer(Behavior_Rate ~ poly(Week, 2) + Strategy + Transect_ID
                 data = subset(point_behaviors, Behavior == "Surface_pecking"),
                 control = glmerControl(optimizer = "bobyqa", 
                                        optCtrl = list(maxfun = 2e5)))
+summary(glmer_poly1)
+
+glmer_polyint <- glmer(
+  Behavior_Rate ~ poly(Week, 2) * Strategy + Tide + Habitat + (1|Three_letter_code),
+  family = Gamma(link = "log"),
+  data = subset(point_behaviors, Behavior == "Surface_pecking"),
+  control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
+)
+
 
 glmer_spline <- glmer(Behavior_Rate ~ ns(Week, df = 4) + Strategy
                       + Transect_ID 
@@ -465,8 +474,25 @@ glmer_week_factor <- glmer(
   control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
 )
 
+glmer_strategy_factor <- glmer(
+  Behavior_Rate ~ as.factor(Strategy) + Week + Tide + Habitat +
+    (1 | Three_letter_code),
+  family = Gamma(link = "log"),
+  data = subset(point_behaviors, Behavior == "Surface_pecking"),
+  control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
+)
+
 glmer_week_factor_int <- glmer(
-  Behavior_Rate ~ as.factor(Week) + Strategy * Tide + Habitat +
+  Behavior_Rate ~ as.factor(Week) * Strategy + Tide + Habitat +
+    (1 | Three_letter_code),
+  family = Gamma(link = "log"),
+  data = subset(point_behaviors, Behavior == "Surface_pecking"),
+  control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
+)
+
+glmer_week_random <- glmer(
+  Behavior_Rate ~ as.factor(Week) + Strategy + (Week | Strategy) 
+  + Tide + Habitat +
     (1 | Three_letter_code),
   family = Gamma(link = "log"),
   data = subset(point_behaviors, Behavior == "Surface_pecking"),
@@ -474,10 +500,10 @@ glmer_week_factor_int <- glmer(
 )
 
 
-pecking_model <- model.sel(glmfull, glm_int1, glmer_full, glmer_reduced1, glm1, glm2, glm3, glm4, glm5, glm6, glmer_reduced2, glmer_int1, glmer_reduced3, glmer_reduced4, glmer_poly1, glmer_spline, glmer_reduced5, glmer_reduced6, glmer_int2, glmer_int3, glmer_week_factor, glmer_week_factor_int)
+pecking_model <- model.sel(glmfull, glm_int1, glmer_full, glmer_reduced1, glm1, glm2, glm3, glm4, glm5, glm6, glmer_reduced2, glmer_int1, glmer_reduced3, glmer_reduced4, glmer_poly1, glmer_spline, glmer_reduced5, glmer_reduced6, glmer_int2, glmer_int3, glmer_week_factor, glmer_week_factor_int, glmer_strategy_factor, glmer_polyint, glmer_week_random)
 pecking_model
 
-plot(residuals(glmer_reduced5))
+plot(residuals(glmer_week_factor))
 ## Which shows a not really a pattern which is good!
 
 
@@ -516,7 +542,7 @@ new_pecking_smooth$Three_letter_code <- factor(new_pecking_smooth$Three_letter_c
 new_pecking_smooth$Habitat <- factor(new_pecking_smooth$Habitat, levels = habitat)
 new_pecking_smooth$Tide <- factor(new_pecking_smooth$Tide, levels = tide)
 
-new_pecking_smooth$predicted <- predict(glmer_week_factor_int,
+new_pecking_smooth$predicted <- predict(glmer_week_factor,
                                         newdata = new_pecking_smooth,
                                         re.form = NA,
                                         type = "response")
@@ -565,7 +591,7 @@ p6c <- p6b +
 p6c
 
 # Pairwise comparison
-emm_pecking <- emm <- emmeans(glmer_week_factor_int, ~ Strategy | Week, type = "response")
+emm_pecking <- emm <- emmeans(glmer_week_factor, ~ Strategy | Week, type = "response")
 
 # Pairwise comparisons of Strategy within each Week × Habitat group
 pairwise_results_pecking <- pairs(emm_pecking, adjust = "tukey", type = "response")
@@ -609,35 +635,277 @@ print(pecking_group_letters_ordered)
 
 ggsave("pecking_rate_per_strategy.png", plot = p6c, width = 28, height = 10, dpi = 300)
 
+p7a <- ggplot(point_behaviors |> filter(Behavior == "Turning_stuff"),
+              aes(x = as.factor(Week), y = Behavior_Rate, 
+                  fill = Strategy)) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("#E777F2", "#4DD2A4", "#4DC8F9")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Turning by Strategy",
+    x = "Week",
+    y = "Duration Rate")
+p7a
 
-
-
-
-p7b <- p7a + geom_text(data = counts_point |> filter(Behavior == "Turning_stuff"), aes(x = as.factor(Week), y = 0.1,                                             label = paste0("n=", n)),
+p7b <- p7a + geom_text(data = counts_point |> filter(Behavior == "Turning_stuff"), aes(x = as.factor(Week), y = 0.1,                                             label = paste0("", n)),
                        position = position_dodge(width = 0.8), size = 4)
 
 p7b
 
-glm7 <- glm(Behavior_Rate ~ Week + Strategy + Week * Strategy, 
-            family = Gamma(link = "log"),
-            data = subset(point_behaviors, Behavior == "Turning_stuff"))
-summary(glm7)
+### Sample size is very low, probably not worth it to do a model selection
 
-p_point_behavior <- p5b + p6b + p7b
+p_point_behavior <- p5c + p6c + p7b
 p_point_behavior
-
-#emmeans_results <- emmeans(aov(Behavior_Rate ~ Behavior * Strategy, data = #point_behaviors), 
-#                           pairwise ~ Strategy | Behavior)
-#print(emmeans_results)
-
-##wilcox.test(Behavior_Rate ~ Strategy, data = point_behaviors)
-# W = 57959, p-value = 0.2195
-
-point_behaviors %>%
-  group_by(Week) %>%
-  summarise(p_value = kruskal.test(Behavior_Rate ~ Strategy)$p.value)
-## Or not necessary maybe
 
 ggsave("rate_forage_stratgy.png", plot = p_point_behavior, width = 28, height = 10, dpi = 300)
 
-# I want to do an emmeans test to compare the strategies for each behavior
+###########################################
+
+p8a <- ggplot(point_behaviors |> filter(Behavior == "Swallowing"),
+              aes(x = as.factor(Week), y = Behavior_Rate, 
+                  fill = Strategy)) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("#E777F2", "#4DD2A4", "#4DC8F9")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Swallowing by Strategy",
+    x = "Week",
+    y = "Duration Rate")
+p8a
+
+p8b <- p8a + geom_text(data = counts_point |> filter(Behavior == "Swallowing"), aes(x = as.factor(Week), y = 0.6,                                             label = paste0("", n)),
+                       position = position_dodge(width = 0.8), size = 4)
+
+p8b
+
+library(dplyr)
+
+success_swallowing <- point_behaviors %>%
+  filter(Behavior %in% c("Surface_pecking", "Probing", "Swallowing")) %>%
+  group_by(Observation_id, Week, Strategy, Tide, Habitat, Transect_ID, Three_letter_code) %>%
+  summarise(
+    Surface_pecking = sum(Behavior_Count[Behavior == "Surface_pecking"], na.rm = TRUE),
+    Probing = sum(Behavior_Count[Behavior == "Probing"], na.rm = TRUE),
+    Swallowing = sum(Behavior_Count[Behavior == "Swallowing"], na.rm = TRUE),
+    Media_duration = first(Media.duration..s.),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    Total_attempts = Surface_pecking + Probing,
+    Swallowing_success = ifelse(Total_attempts > 0, Swallowing / Total_attempts, NA_real_),
+    Swallowing_success_duration = Swallowing_success / Media_duration) |>
+  filter(!Observation_id %in% c("KMP.16.04", "NUK.24.04"))
+
+p9a <- ggplot(success_swallowing,
+              aes(x = as.factor(Week), y = Swallowing_success_duration, 
+                  fill = Strategy)) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("#E777F2", "#4DD2A4", "#4DC8F9")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Succesfull attempts by Strategy",
+    x = "Week",
+    y = "Duration Rate")
+p9a
+
+qqnorm(success_swallowing$Swallowing_success_duration)
+
+shapiro.test(success_swallowing$Swallowing_success_duration[!is.na(success_swallowing$Swallowing_success_duration)])
+
+## plot distribution of Swallowing success duration
+ggplot(success_swallowing, aes(x = Swallowing_success_duration)) +
+  geom_histogram(bins = 30, fill = "#69b3a2", color = "black") +
+  labs(
+    title = "Distribution of Swallowing Success Duration",
+    x = "Swallowing Success Duration (seconds)",
+    y = "Count"
+  ) +
+  theme_minimal()
+         
+
+glm1 <- glm(Swallowing_success_duration ~ 1, 
+            family = Gamma(link = "log"),
+            data = success_swallowing)
+
+glm2 <- glm(Swallowing_success_duration ~ Week, 
+            family = Gamma(link = "log"),
+            data = success_swallowing)
+
+glm3 <- glm(Swallowing_success_duration ~ Strategy,
+            family = Gamma(link = "log"),
+            data = success_swallowing)
+
+glm4 <- glm(Swallowing_success_duration ~ Tide,
+            family = Gamma(link = "log"),
+            data = success_swallowing)
+
+glm5 <- glm(Swallowing_success_duration ~ Habitat,
+            family = Gamma(link = "log"),
+            data = success_swallowing)
+
+glm6 <- glm(Swallowing_success_duration ~ Transect_ID,
+            family = Gamma(link = "log"),
+            data = success_swallowing)
+
+model.sel(glm1, glm2, glm3, glm4, glm5, glm6)
+
+glmfull <- glm(Swallowing_success_duration ~ Week + Strategy + Tide + Habitat 
+               + Transect_ID, 
+               family = Gamma(link = "log"),
+               data = success_swallowing)
+
+summary(glmfull)
+
+glm_int1 <- glm(Swallowing_success_duration ~ Week * Strategy + Tide + Habitat 
+                + Transect_ID, 
+                family = Gamma(link = "log"),
+                data = success_swallowing)
+summary(glm_int1)
+
+glmer_full <- glmer(Swallowing_success_duration ~ Week + Strategy +
+                      (1 | Three_letter_code) + (1 | Transect_ID) 
+                    + (1 | Tide) + (1 | Habitat), 
+                family = Gamma(link = "log"),
+                data = success_swallowing,
+                control = glmerControl(optimizer = "bobyqa", 
+                                       optCtrl = list(maxfun = 2e5)))
+summary(glmer_full)
+
+glmer_reduced1 <- glmer(Swallowing_success_duration ~ Week + Strategy + 
+                        (1 | Three_letter_code) + (1 | Transect_ID), 
+                        family = Gamma(link = "log"),
+                        data = success_swallowing,
+                        control = glmerControl(optimizer = "bobyqa", 
+                                               optCtrl = list(maxfun = 2e5)))
+summary(glmer_reduced1)
+
+glmer_int1 <- glmer(Swallowing_success_duration ~ Week * Strategy + 
+                        (1 | Three_letter_code) + (1 | Transect_ID), 
+                        family = Gamma(link = "log"),
+                        data = success_swallowing,
+                        control = glmerControl(optimizer = "bobyqa", 
+                                               optCtrl = list(maxfun = 2e5)))
+summary(glmer_int1)
+
+glmer_poly1 <- glmer(Swallowing_success_duration ~ poly(Week, 2) + Strategy
+                  + (1 | Three_letter_code) + (1 | Transect_ID) + (1 | Tide),
+  family = Gamma(link = "log"),
+  data = success_swallowing,
+  control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5)))
+summary(glmer_poly1)
+
+glmer_polyint <- glmer(Swallowing_success_duration ~ poly(Week, 2) * Strategy 
+                       + (1 | Three_letter_code) + (1 | Transect_ID),
+                       family = Gamma(link = "log"),
+                       data = success_swallowing,
+                       control = glmerControl(optimizer = "bobyqa", 
+                                              optCtrl = list(maxfun = 2e5)))
+
+model.sel(glmfull, glm_int1, glmer_full, glmer_reduced1, glm1, glm2, glm3, glm4, glm5, glm6, glmer_int1, glmer_poly1, glmer_polyint)
+
+swallowing_model <- model.sel(glmfull, glm_int1, glmer_full, glmer_reduced1, glm1, glm2, glm3, glm4, glm5, glm6, glmer_int1, glmer_poly1, glmer_polyint)
+swallowing_model
+
+swallowing_model_df <- as.data.frame(swallowing_model)
+swallowing_model_df$model <- rownames(swallowing_model_df)
+swallowing_model_df <- swallowing_model_df[, c("model", setdiff(names(swallowing_model_df), "model"))]
+head(swallowing_model_df)
+# Save to CSV
+
+write.csv(swallowing_model_df, "swallowing_model_selection_table.csv", row.names = FALSE)
+
+success_swallowing$Strategy <- factor(success_swallowing$Strategy)
+success_swallowing$Three_letter_code <- factor(success_swallowing$Three_letter_code)
+success_swallowing$Transect_ID <- factor(success_swallowing$Transect_ID)
+success_swallowing$Tide <- factor(success_swallowing$Tide)
+
+strategies <- levels(success_swallowing$Strategy)
+three_letter <- levels(success_swallowing$Three_letter_code)
+transect_ids <- levels(success_swallowing$Transect_ID)
+tide <- levels(success_swallowing$Tide)
+weeks_seq <- seq(min(success_swallowing$Week), max(success_swallowing$Week), length.out = 500)
+
+new_swallowing_smooth <- expand.grid(
+  Week = 12:21,
+  Strategy = strategies,
+  Three_letter_code = three_letter,
+  Transect_ID = transect_ids,
+  Tide = tide,
+  stringsAsFactors = FALSE
+)
+# Convert them back to factors using the original levels
+new_swallowing_smooth$Strategy <- factor(new_swallowing_smooth$Strategy, levels = strategies)
+new_swallowing_smooth$Three_letter_code <- factor(new_swallowing_smooth$Three_letter_code, levels = three_letter)
+new_swallowing_smooth$Transect_ID <- factor(new_swallowing_smooth$Transect_ID, levels = transect_ids)
+new_swallowing_smooth$Tide <- factor(new_swallowing_smooth$Tide, levels = tide)
+new_swallowing_smooth$predicted <- predict(glmer_poly1,
+                                  newdata = new_swallowing_smooth,
+                                  re.form = NA,
+                                  type = "response")
+new_swallowing_smooth <- new_swallowing_smooth |>
+  filter(!Week %in% c("12", "13", "14", "15"))
+p9b <- p9a +
+  geom_line(
+    data = new_swallowing_smooth,
+    aes(x = as.factor(Week), y = predicted, color = Strategy, 
+        group = Strategy),
+    size = 1.0, inherit.aes = FALSE
+  ) +
+  
+  # Manual colors
+  scale_color_manual(values = c(
+    "overwinterer" = "#3487a8",
+    "late_northward_migration" = "#2d8062",
+    "early_northward_migration" = "#904a96"
+  )) +
+  scale_fill_manual(values = c(
+    "overwinterer" = "#4DC8F9",
+    "late_northward_migration" = "#4DD2A4",
+    "early_northward_migration" = "#E777F2"
+  )) +
+  labs(
+    y = "Behaviour Rate",
+    x = "Week",
+    title = "Swallowing Succes Rate per Strategy"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14),
+    axis.title.x = element_text(size = 16),
+    axis.title.y = element_text(size = 16),
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    legend.position = "none"
+  )
+p9b
+# Pairwise comparison
+emm_swallowing <- emm <- emmeans(glmer_poly1, ~ Strategy | Week, type = "response")
+# Pairwise comparisons of Strategy within each Week × Habitat group
+pairwise_results_swallowing <- pairs(emm_swallowing, adjust = "tukey", type = "response")
+pairwise_summary_swallowing <- summary(pairwise_results_swallowing)
+# Print summary of comparisons
+print(pairwise_summary_swallowing)
+# Extract p-values and contrast names
+swallowing_pvals <- pairwise_summary_swallowing$p.value
+names(swallowing_pvals) <- gsub(" / ", " - ", pairwise_summary_swallowing$contrast)
+# Remove duplicates (if any)
+swallowing_pvals_unique <- swallowing_pvals[!duplicated(names(swallowing_pvals))]
+library(multcompView)
+# Generate compact letter display for grouping
+swallowing_group_letters <- multcompLetters(swallowing_pvals_unique)$Letters
+library(stringr)  # for str_trim()
+# Trim spaces from names
+swallowing_clean_names <- str_trim(names(swallowing_group_letters))
+# Remove duplicates: keep first occurrence only
+swallowing_unique_indices <- !duplicated(swallowing_clean_names)
+swallowing_clean_names_unique <- swallowing_clean_names[swallowing_unique_indices]
+swallowing_group_letters_unique <- swallowing_group_letters[swallowing_unique_indices]
+# Rename with cleaned names
+names(swallowing_group_letters_unique) <- swallowing_clean_names_unique
+# Define factor level order (optional)
+levels_strat <- c("early_northward_migration", "late_northward_migration", "overwinterer")
+# Match levels to cleaned names
+swallowing_group_letters_ordered <- swallowing_group_letters_unique[match(levels_strat, swallowing_clean_names_unique)]
+print(swallowing_group_letters_ordered)
+
+ggsave("swallowing_rate_per_strategy.png", plot = p9b, width = 28, height = 10, dpi = 300)
