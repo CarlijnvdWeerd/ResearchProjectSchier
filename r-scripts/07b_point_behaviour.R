@@ -844,6 +844,7 @@ new_swallowing_smooth$predicted <- predict(glmer_poly1,
                                   type = "response")
 new_swallowing_smooth <- new_swallowing_smooth |>
   filter(!Week %in% c("12", "13", "14", "15"))
+
 p9b <- p9a +
   geom_line(
     data = new_swallowing_smooth,
@@ -851,6 +852,13 @@ p9b <- p9a +
         group = Strategy),
     size = 1.0, inherit.aes = FALSE
   ) +
+  geom_text(
+    data = swallow_counts,
+    aes(x = as.factor(Week), y = 0.005, label = n, group = Strategy),
+    position = position_dodge2(width = 0.8, preserve = "single"),
+   # position = position_dodge(width = 1.0),
+    size =3,
+    inherit.aes = FALSE) +
   
   # Manual colors
   scale_color_manual(values = c(
@@ -878,6 +886,14 @@ p9b <- p9a +
     legend.position = "none"
   )
 p9b
+
+
+
+swallow_counts <- success_swallowing |>
+  group_by(Week, Strategy) |>
+  summarise(n = n_distinct(Observation_id), .groups = "drop") |>
+  filter(!Week %in% c("9", "11","12", "13", "15"))
+
 # Pairwise comparison
 emm_swallowing <- emm <- emmeans(glmer_poly1, ~ Strategy | Week, type = "response")
 # Pairwise comparisons of Strategy within each Week × Habitat group

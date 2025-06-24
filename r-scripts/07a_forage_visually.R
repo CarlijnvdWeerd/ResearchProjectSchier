@@ -3,7 +3,7 @@ renv::restore()
 
 # Calculate counts per Week and Strategy
 counts <- behaviors |>
-  group_by(Week, Strategy) |>
+  group_by(Week, Strategy, Habitat) |>
   summarise(n = n_distinct(Observation_id), .groups = "drop") |>
   filter(!Week %in% c("9", "11","12", "13", "15"))
 
@@ -413,6 +413,14 @@ p3 <- ggplot(visual, aes(x = Week, y = visually_foraging)) +
     inherit.aes = FALSE
   ) +
   
+  geom_text(
+    data = counts,
+    aes(x = Week, y = 140, label = n, group = Strategy, color = Strategy),
+    position = position_dodge(width = 0.8),
+    size = 2,
+    inherit.aes = FALSE
+  ) +
+
   # Manual colors
   scale_color_manual(values = c(
     "overwinterer" = "#3487a8",
@@ -443,7 +451,14 @@ p3 <- ggplot(visual, aes(x = Week, y = visually_foraging)) +
     plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
     legend.position = "none"
   )
-  
+p3
+
+p4 <- p3 + geom_text(data = counts,
+            aes(x = Week, y = 140, label = n),
+            position = position_dodge(width = 0.9), size = 2)
+
+p4
+
 #p3 <- p2 +
 #  geom_line(
 #    data = new_data,

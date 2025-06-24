@@ -197,11 +197,17 @@ behaviors <- behaviors |>
 # The same analysis but than for the stage event behaviors
 stage_behavior <- behaviors |>
   filter(Behavior %in% c("Walking", "Alert", "Digging", "Routing", "Handling_prey")) |>
-  mutate(Behavior_Rate = (total_duration / Media.duration..s.))
+  group_by(Three_letter_code, Behavior, Strategy, Week, Tide, Habitat, Observation_id, Transect_ID, Date.x, Media.duration..s., 
+           Social_behavior, Aggressive.or.submissive) |>
+  summarise(Duration = n(), .groups = "drop") |>
+  mutate(Duration_Rate = Duration / Media.duration..s.) |>
+  filter(Week %in% c(16, 17, 18 ,19, 20 ,21)) #|>
+  filter(!Observation_id %in% c("KET_20.03", "KET.20.03", "LEA_21.05"))
+  
 
 # Plotting the stage behaviors
 p_stage <- ggplot(stage_behavior,
-                  aes(x = as.factor(Week), y = Behavior_Rate, 
+                  aes(x = as.factor(Week), y = Duration_Rate, 
                       fill = Strategy)) +
   geom_boxplot() +
   scale_fill_manual(values = c("#FF9999","#1ED760", "#66B3FF")) +
@@ -219,7 +225,7 @@ qqnorm(stage_behavior$Behavior_Rate)
 counts_stage <- stage_behavior |>
   group_by(Week, Strategy, Behavior) |>
   summarise(n = n_distinct(Observation_id), .groups = "drop") |>
-  filter(!Week %in% c("9", "11", "15"))
+  filter(!Week %in% c("9", "11","12", "13", "15"))
 
 p10a <- ggplot(stage_behavior |> filter(Behavior == "Walking"),
               aes(x = as.factor(Week), y = Behavior_Rate, 
