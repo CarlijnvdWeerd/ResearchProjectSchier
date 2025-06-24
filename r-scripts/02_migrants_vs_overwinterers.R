@@ -78,58 +78,68 @@ library(ggplot2)
 start_date2024 <- as.Date("2024-06-01")
 end_date2025 <- as.Date("2025-06-15")
 
+
+
 # Filter observations
 filtered_data <- observation_data %>%
   filter(observation_date >= start_date2024 & observation_date <= end_date2025) |>
-  mutate(day_number = as.numeric(observation_date - as.Date("2024-04-01")) + 1)
+  mutate(day_number = as.numeric(observation_date - as.Date("2024-06-01")) + 1)
 
-ggplot(filtered_data, aes(x = day_number, y = observation_lat)) +
-  geom_point(aes(color = category), size = 2, alpha = 0.7) +
-  facet_wrap(~ bird_code) +
-  labs(title = "Latitude of Observations over Time per Bird",
-       x = "Day since Oct 1, 2024",
-       y = "Latitude",
-       color = "Category") +
-  theme_minimal()
-
-winter_data <- filtered_data %>%
+filtered_data <- filtered_data %>%
   group_by(bird_code) %>%
-  filter(any(category == "overwinterers") & 
-           any(category %in% c("northward_migration", "southward_migration"))) %>%
-  ungroup()
+  mutate(first_seen_after_184 = min(day_number[day_number >= 184], default = Inf)) %>%
+  ungroup() %>%
+  mutate(bird_code = reorder(bird_code, -first_seen_after_184))  # <--- negative sign flips the order
+
+all_birds <- ggplot(filtered_data, aes(x = day_number, y = bird_code)) +
+  geom_point(aes(color = category), size = 5, alpha = 0.9) +
+  
+  geom_vline(xintercept = c(31, 184, 289, 315, 381), linetype = "dashed", color = "gray40") +
+  
+  annotate("text", x = 107, y = Inf, label = "Southward\nMigration", vjust = 2, size = 3) +
+  annotate("text", x = 236, y = Inf, label = "Overwinterers", vjust = 2, size = 3) +
+  annotate("text", x = 301, y = Inf, label = "Early\nNorthward", vjust = 2, size = 3) +
+  annotate("text", x = 348, y = Inf, label = "Late\nNorthward", vjust = 2, size = 3) +
+  annotate("text", x = 388, y = Inf, label = "Nonbreeding", vjust = 2, size = 3) +
+  
+  scale_color_manual(
+    values = c(
+      "overwinterers" = "#4DC8F9",
+      "early_northward_migration" = "#E777F2",
+      "late_northward_migration" = "#4DD2A4",
+      "nonbreeding" = "#FA9F99",
+      "southward_migration" = "#BFC04D"
+    )
+  ) +
+  
+  labs(
+    title = "Date of Observations per Birdcode",
+    x = "Day since June 1, 2024",
+    y = "Bird Code",
+    color = NULL  # No legend title needed
+  ) +
+  
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(size = 12),       # X-axis numbers
+    axis.text.y = element_text(size = 9),       # Y-axis labels
+    axis.title.x = element_text(size = 14),      # X-axis title
+    axis.title.y = element_text(size = 14),      # Y-axis title
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),  # Centered & bold title
+    legend.position = "none"
+  )
+
+all_birds
+
+ggsave("all_birds.png", plot = all_birds, width = 18, height = 30, dpi = 300)
 
 
-ggplot(winter_data, aes(x = day_number, y = observation_lat)) +
-  geom_point(aes(color = category), size = 2, alpha = 0.7) +
-  facet_wrap(~ bird_code) +
-  labs(title = "Latitude of Observations over Time per Bird",
-       x = "Day since Oct 1, 2024",
-       y = "Latitude",
-       color = "Category") +
-  theme_minimal()
-
-### JEL, JLT, JPU, JTN, JYL, KJU, KKN, KNP, KPM, KTJ, KXM, LCP, LCT, LMN, LPL, LPT, LTV, LYK, MAU, MCH, MPC, MTJ, MYV, NJM, NLJ, NTV, PAE, PAJ, PHN, PKN, PMP, PNL, PPT and PXX
+library(dplyr)
 
 # Filter observations
 filtered_data2024_2025 <- filmed_birds %>%
   filter(observation_date >= start_date2024 & observation_date <= end_date2025) |>
   mutate(day_number = as.numeric(observation_date - as.Date("2024-06-01")) + 1)
-
-p_allobserve <- ggplot(filtered_data2024_2025, aes(x = day_number, y = observation_lat)) +
-  geom_point(aes(color = category), size = 2, alpha = 0.7) +
-  facet_wrap(~ bird_code) +
-  labs(title = "Latitude of Observations over Time per Bird",
-       x = "Day since June 1, 2024",
-       y = "Latitude",
-       color = "Category") +
-  theme_minimal()
-p_allobserve
-
-ggsave("all_observation_over_time.png", plot = p_allobserve, width = 18, height = 18, dpi = 300)
-
-library(dplyr)
-
-desired_order <- c("overwinterers", "early_northward_migration", "late_northward_migration", "nonbreeding", "southward_migration")
 
 filtered_data2024_2025 <- filtered_data2024_2025 %>%
   group_by(bird_code) %>%
