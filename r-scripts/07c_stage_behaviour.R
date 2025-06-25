@@ -8,8 +8,8 @@ stage_behavior <- stage_behavior |>
 ggplot(stage_behavior |> filter(Behavior == "Walking"), aes(x = Duration_Rate)) +
   geom_histogram(bins = 30, fill = "#69b3a2", color = "black") +
   labs(
-    title = "Distribution of Visually Foraging Durations",
-    x = "Visually Foraging Duration (seconds)",
+    title = "Distribution of Walking Durations",
+    x = "Walking Duration (seconds)",
     y = "Count"
   ) +
   theme_minimal()
@@ -100,6 +100,7 @@ glmer_intpol2 <- glmer(Duration_Rate ~ poly(Week, 2) * Strategy
 summary(glmer_intpol2)
 
 walking_model <- model.sel(glmerfull, glmer_int1, glmer_intpol1, glmer_intpol2, glm1, glm2, glm3, glm4, glm5)
+walking_model
 
 walking_model_df <- as.data.frame(walking_model)
 walking_model_df$model <- rownames(walking_model_df)
@@ -522,6 +523,7 @@ glmer_polint1 <- glmer(Duration_Rate ~ poly(Week, 2) * Strategy +
                                               optCtrl = list(maxfun = 2e5)))
 
 handling_model <- model.sel(glmerfull, glmer_red1, glmer_pol1, glmer_polint1, glm1, glm2, glm3, glm4, glm5)
+handling_model
 
 handling_model_df <- as.data.frame(handling_model)
 handling_model_df$model <- rownames(handling_model_df)

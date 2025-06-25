@@ -266,6 +266,13 @@ p5c
 # Pairwise comparison
 emm_probing <- emm <- emmeans(glmer_poly2, ~ Strategy | Week, type = "response")
 
+
+# Use cld to assign group letters
+cld_probing <- cld(emm_probing, adjust = "tukey", Letters = letters, type = "response")
+
+# View result
+print(cld_probing)
+
 # Pairwise comparisons of Strategy within each Week × Habitat group
 pairwise_results_probing <- pairs(emm_probing, adjust = "tukey", type = "response")
 pairwise_summary_probing <- summary(pairwise_results_probing)
