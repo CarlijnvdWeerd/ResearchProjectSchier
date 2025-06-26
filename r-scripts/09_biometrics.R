@@ -46,18 +46,18 @@ p1a <- ggplot(ring_data,
     x = "Strategy",
     y = "Wing length in mm") +
   theme(
-    axis.text.x = element_text(size = 14),
-    axis.text.y = element_text(size = 14),
-    axis.title.x = element_text(size = 16),
-    axis.title.y = element_text(size = 16),
-    plot.title = element_text(size = 18, face = "bold", hjust = 0.5), 
+    axis.text.x = element_text(size = 19),
+    axis.text.y = element_text(size = 19),
+    axis.title.x = element_text(size = 21),
+    axis.title.y = element_text(size = 21),
+    plot.title = element_text(size = 25, face = "bold", hjust = 0.5), 
     legend.position = "none",)
 p1a      
 
 p1b <- p1a + geom_text(data = ring_counts, aes(x = as.factor(Year), 
                                                                                  y = 172, 
                                                                                  label = paste0("", n)),
-                       position = position_dodge(width = 0.8), size = 3)
+                       position = position_dodge(width = 0.8), size = 8)
 p1b
 
 library(dplyr)
@@ -93,18 +93,18 @@ p2a <- ggplot(ring_data,
     x = "Year",
     y = "Weight in grams") +
   theme(
-    axis.text.x = element_text(size = 14),
-    axis.text.y = element_text(size = 14),
-    axis.title.x = element_text(size = 16),
-    axis.title.y = element_text(size = 16),
-    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    axis.text.x = element_text(size = 19),
+    axis.text.y = element_text(size = 19),
+    axis.title.x = element_text(size = 21),
+    axis.title.y = element_text(size = 21),
+    plot.title = element_text(size = 25, face = "bold", hjust = 0.5),
     legend.position = "none")
 p2a      
 
 p2b <- p2a + geom_text(data = ring_counts, aes(x = as.factor(Year), 
                                                y = 172, 
                                                label = paste0("", n)),
-                       position = position_dodge(width = 0.8), size = 3)
+                       position = position_dodge(width = 0.8), size = 8)
 p2b
 
 
@@ -120,18 +120,18 @@ p3a <- ggplot(ring_data,
     x = "Year",
     y = "Beak length in mm") +
   theme(
-    axis.text.x = element_text(size = 14),
-    axis.text.y = element_text(size = 14),
-    axis.title.x = element_text(size = 16),
-    axis.title.y = element_text(size = 16),
-    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    axis.text.x = element_text(size = 19),
+    axis.text.y = element_text(size = 19),
+    axis.title.x = element_text(size = 21),
+    axis.title.y = element_text(size = 21),
+    plot.title = element_text(size = 25, face = "bold", hjust = 0.5),
     legend.position = "none")
 p3a  
 
 p3b <- p3a + geom_text(data = ring_counts, aes(x = as.factor(Year), 
                                                y = 29, 
                                                label = paste0("", n)),
-                       position = position_dodge(width = 0.8), size = 3)
+                       position = position_dodge(width = 0.8), size = 8)
 p3b
 
 p4a <- ggplot(ring_data,
@@ -145,18 +145,18 @@ p4a <- ggplot(ring_data,
     x = "Year",
     y = "Tarsus length in cm") +
   theme(
-    axis.text.x = element_text(size = 14),
-    axis.text.y = element_text(size = 14),
-    axis.title.x = element_text(size = 16),
-    axis.title.y = element_text(size = 16),
-    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    axis.text.x = element_text(size = 19),
+    axis.text.y = element_text(size = 19),
+    axis.title.x = element_text(size = 21),
+    axis.title.y = element_text(size = 21),
+    plot.title = element_text(size = 25, face = "bold", hjust = 0.5),
     legend.position = "none")
 p4a  
 
 p4b <- p4a + geom_text(data = ring_counts, aes(x = as.factor(Year), 
                                                y = 30, 
                                                label = paste0("", n)),
-                       position = position_dodge(width = 0.8), size = 3)
+                       position = position_dodge(width = 0.8), size = 8)
 p4b
 
 ##########################################################
@@ -166,55 +166,61 @@ ggplot(ring_data, aes(x = Wing)) +
   theme_minimal()
 
 
-lm1 <- lm(Wing ~ 1, 
+glm1 <- glm(Wing ~ 1, 
+           family = gaussian(),
             data = ring_data)
 
-lm2 <- lm(Wing ~ Year,
+glm2 <- glm(Wing ~ Year,
+           family = gaussian(),
             data = ring_data)
 
-lm3 <- lm(Wing ~ Strategy,
+glm3 <- glm(Wing ~ Strategy,
+            family = gaussian(),
             data = ring_data)
 
-lm4 <- lm(Wing ~ Year + Strategy,
+glm4 <- glm(Wing ~ Year + Strategy,
+            family = gaussian(),
             data = ring_data)
 
-lm5 <- lm(Wing ~ Year * Strategy,
+glm5 <- glm(Wing ~ Year * Strategy,
+            family = gaussian(),
             data = ring_data)
 
-anova(lm1, lm2, lm3, lm4, lm5)  
+anova(glm1, glm2, glm3, glm4, glm5)  
+model.sel(glm1, glm2, glm3, glm4, glm5)
 
 library(emmeans)
 # Compute emmeans
-emm_wing <- emmeans(lm5, ~ Strategy | Year, type = "response")
+#emm_wing <- emmeans(lm5, ~ Strategy | Year, type = "response")
 
 library(multcomp)
 
 # Use cld to assign group letters
-cld_wing <- cld(emm_wing, adjust = "tukey", Letters = letters, type = "response")
+#cld_wing <- cld(emm_wing, adjust = "tukey", Letters = letters, type = "response")
 
 # View result
-print(cld_wing)
+#print(cld_wing)
 
-cld_wing$Year <- as.factor(cld_wing$Year)  # Match plot's x-axis
+#cld_wing$Year <- as.factor(cld_wing$Year)  # Match plot's x-axis
 
 # Example: pick a position slightly above max wing values
 library(dplyr)
 
-wing_label_positions <- ring_data %>%
-  group_by(Year, Strategy) %>%
-  summarise(y_pos = max(Wing, na.rm = TRUE) + 2)  # Adjust +2 as needed
+#wing_label_positions <- ring_data %>%
+#  group_by(Year, Strategy) %>%
+#  summarise(y_pos = max(Wing, na.rm = TRUE) + 2)  # Adjust +2 as needed
 
 # Join with letters
-cld_plot_wing <- left_join(cld_wing, wing_label_positions, by = c("Year", "Strategy"))
+#cld_plot_wing <- left_join(cld_wing, wing_label_positions, by = c("Year", "Strategy"))
 
 p1c <- p1b +
   geom_text(data = cld_plot_wing,
             aes(x = Year, y = y_pos, label = .group, group = Strategy),
-            position = position_dodge(width = 0.8), size = 4)
+            position = position_dodge(width = 0.8), size = 8)
 
 p1c
 
-ggsave("wing_lenght.png", plot = p1c, width = 28, height = 15, dpi = 300)
+ggsave("wing_lenght.png", plot = p1b, width = 28, height = 15, dpi = 300)
 
 ################################################################
 ggplot(ring_data, aes(x = Weight)) +
@@ -288,7 +294,7 @@ cld_plot_weight <- cld_plot_weight |>
 p2c <- p2b +
   geom_text(data = cld_plot_weight,
             aes(x = Year, y = y_pos, label = .group, group = Strategy),
-            position = position_dodge(width = 0.8), size = 4)
+            position = position_dodge(width = 0.8), size = 8)
 
 p2c
 
@@ -355,13 +361,13 @@ beak_label_positions <- ring_data %>%
 # Join with letters
 cld_plot_beak <- left_join(cld_beak, beak_label_positions, by = c("Year", "Strategy"))
 
-#cld_plot_beak <- cld_plot_weight |>
+#cld_plot_beak <- cld_plot_beak |>
 #  filter(!(Strategy == "not_seen_in_2025" & Year == "2025"))
 
 p3c <- p3b +
   geom_text(data = cld_plot_beak,
             aes(x = Year, y = y_pos, label = .group, group = Strategy),
-            position = position_dodge(width = 0.8), size = 4)
+            position = position_dodge(width = 0.8), size = 8)
 
 p3c
 
@@ -375,7 +381,8 @@ ggplot(ring_data, aes(x = Tarsus)) +
 
 qqnorm(ring_data$Tarsus)
 
-glm1 <- glm(Tarsus ~ 1, 
+glm1 <- glm(Tarsus 
+            ~ 1, 
             family = gaussian(),
             data = ring_data)
 
