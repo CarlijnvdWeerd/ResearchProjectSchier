@@ -124,8 +124,16 @@ p_molt <- ggplot(molt_data, aes(x = Date, y = Molting_score, color = Strategy, g
        x = "Date",
        y = "Molting Score") +
   theme_minimal() +
-  theme(legend.position = "bottom")
+  theme(
+    axis.text.x = element_text(size = 19),
+    axis.text.y = element_text(size = 19),
+    axis.title.x = element_text(size = 21),
+    axis.title.y = element_text(size = 21),
+    plot.title = element_text(size = 25, face = "bold", hjust = 0.5),
+    legend.position = "none")
 p_molt
+
+ggsave("moult_rate.png", plot = p_molt, width = 28, height = 15, dpi = 300)
 
 ###########################################################################
 ## Need to make a new dataframe and not use video_data, because removed the birds that did not moult
@@ -137,8 +145,17 @@ p_fat<-ggplot(video_data, aes(x = Date, y = Fat_score, color = Strategy, group =
   labs(title = "Fat Scores of Birds with Smoothed Strategy Trends",
        x = "Date",
        y = "Fat Score") +
-  theme_minimal() +
-  theme(legend.position = "bottom")
+  theme_minimal()  +
+  theme(
+    axis.text.x = element_text(size = 19),
+    axis.text.y = element_text(size = 19),
+    axis.title.x = element_text(size = 21),
+    axis.title.y = element_text(size = 21),
+    plot.title = element_text(size = 25, face = "bold", hjust = 0.5),
+    legend.position = "none")
+p_fat
+
+ggsave("fat_rate.png", plot = p_fat, width = 28, height = 15, dpi = 300)
 p_fat
 
 ########################################################################
@@ -165,14 +182,23 @@ slopes_with_strategy <- molting_slopes %>%
   filter(!(Three_letter_code %in% c("KAX", "KKM", "KTN", "PJC")))
 ## to remove birds that where only seen in breeding plumage 
 
-ggplot(slopes_with_strategy, aes(x = Strategy, y= Slope, fill = Strategy)) +
+p_moultslopes <- ggplot(slopes_with_strategy, aes(x = Strategy, y= Slope, fill = Strategy)) +
   geom_boxplot() +
   scale_fill_manual(values = c("#E777F2", "#4DD2A4", "#4DC8F9")) +
-  labs(title = "Distribution of Molting Slopes by Strategy",
-       x = "Slope (Molting Change per Day)",
+  labs(title = "Distribution of Moulting Slopes by Strategy",
+       x = "Slope (Moulting Change per Day)",
        y = "Density") +
   theme_minimal() +
-  theme(legend.position = "bottom")
+  theme(
+    axis.text.x = element_text(size = 21),
+    axis.text.y = element_text(size = 21),
+    axis.title.x = element_text(size = 23),
+    axis.title.y = element_text(size = 23),
+    plot.title = element_text(size = 27, face = "bold", hjust = 0.5),
+    legend.position = "none")
+p_moultslopes
+
+ggsave("moult_slope.png", plot = p_moultslopes, width = 28, height = 15, dpi = 300)
 
 ggplot(slopes_with_strategy, aes(x = Slope)) +
   geom_histogram(bins = 30, fill = "#69b3a2", color = "black") +
@@ -241,15 +267,24 @@ fatslopes_with_strategy <- fatting_slopes %>%
   filter(!(Three_letter_code %in% c("JJJ", "JYL")))
 ## birds with a slope of 0 removed
 
-ggplot(fatslopes_with_strategy, aes(x = Strategy, y= Slope, 
+p_fat_slopes <- ggplot(fatslopes_with_strategy, aes(x = Strategy, y= Slope, 
                                     fill = Strategy)) +
   geom_boxplot() +
   scale_fill_manual(values = c("#E777F2", "#4DD2A4", "#4DC8F9")) +
   labs(title = "Distribution of Fatting Slopes by Strategy",
        x = "Slope (Fatting Up per Day)",
        y = "Density") +
-  theme_minimal() +
-  theme(legend.position = "bottom")
+  theme_minimal()  +
+  theme(
+    axis.text.x = element_text(size = 19),
+    axis.text.y = element_text(size = 19),
+    axis.title.x = element_text(size = 21),
+    axis.title.y = element_text(size = 21),
+    plot.title = element_text(size = 25, face = "bold", hjust = 0.5),
+    legend.position = "none")
+p_fat_slopes
+
+ggsave("fat_slope.png", plot = p_fat_slopes, width = 28, height = 15, dpi = 300)
 
 ### removing outlier (in two days fatting up from 2.5 to 5, not possible)
 fatslopes_with_strategy <- fatslopes_with_strategy |>
@@ -279,6 +314,7 @@ summary(glm3)
 glm4 <- glm(Slope ~ First_Date + Strategy,
               family = inverse.gaussian(link = "log"),
               data = fatslopes_with_strategy)
+summary(glm4)
 
 glm5  <- glm(Slope ~ Last_Date + Strategy,
               family = inverse.gaussian(link = "log"),
@@ -287,6 +323,7 @@ glm5  <- glm(Slope ~ Last_Date + Strategy,
 glm6 <- glm(Slope ~ First_Date + Last_Date + Strategy,
               family = inverse.gaussian(link = "log"),
               data = fatslopes_with_strategy)
+summary(glm6)
 
 model.sel(glm1, glm2, glm3, glm4, glm5, glm6)
 anova(glm1, glm2, glm3, glm4, glm5, glm6, test = "Chisq")
