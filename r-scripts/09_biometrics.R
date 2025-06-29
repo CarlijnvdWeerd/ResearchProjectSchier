@@ -165,32 +165,46 @@ ggplot(ring_data, aes(x = Wing)) +
   geom_histogram(bins = 30, fill = "#69b3a2", color = "black") +
   theme_minimal()
 
+shapiro.test(ring_data$Wing)
 
-glm1 <- glm(Wing ~ 1, 
-           family = gaussian(),
+library(MASS)
+boxcox(lm(ring_data$Wing ~ 1))
+
+ring_data$wing_log_reflected <- log(max(ring_data$Wing, na.rm = TRUE) + 1 - ring_data$Wing)
+
+model_logref <- lmer(wing_log_reflected ~ Strategy + (1|Sex), data = ring_data)
+
+ggplot(ring_data, aes(x = wing_log_reflected)) +
+  geom_histogram(bins = 30, fill = "#69b3a2", color = "black") +
+  theme_minimal()
+
+ring_data$wing_trans <- (ring_data$Wing^(-1.5) - 1) / (-1.5)
+
+hist(ring_data$wing_trans, breaks = 30)
+qqnorm(ring_data$wing_trans); qqline(ring_data$wing_trans)
+shapiro.test(ring_data$wing_trans)
+
+
+lm1 <- lm(wing_trans ~ 1,
             data = ring_data)
 
-glm2 <- glm(Wing ~ Year,
-           family = gaussian(),
+lm2 <- lm(wing_trans ~ Year,
             data = ring_data)
 
-glm3 <- glm(Wing ~ Strategy,
-            family = gaussian(),
+lm3 <- lm(wing_trans ~ Strategy,
             data = ring_data)
 
-glm4 <- glm(Wing ~ Year + Strategy,
-            family = gaussian(),
+lm4 <- lm(wing_trans ~ Year + Strategy,
             data = ring_data)
 
-glm5 <- glm(Wing ~ Year * Strategy,
-            family = gaussian(),
+lm5 <- lm(wing_trans ~ Year * Strategy,
             data = ring_data)
 
-anova(glm1, glm2, glm3, glm4, glm5)  
-model.sel(glm1, glm2, glm3, glm4, glm5)
+anova(lm1, lm2, lm3, lm4, lm5)  
+model.sel(lm1, lm2, lm3, lm4, lm5)
 
-library(emmeans)
-# Compute emmeans
+#library(emmeans)
+#Compute emmeans
 #emm_wing <- emmeans(lm5, ~ Strategy | Year, type = "response")
 
 library(multcomp)

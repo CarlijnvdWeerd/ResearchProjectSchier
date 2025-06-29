@@ -345,11 +345,12 @@ timebox <- ggplot(timeline_data, aes(x=Strategy, y=last_observation_date, fill =
        y = "Strategy") +
   theme_minimal() +
   theme(
-    plot.title = element_text(size = 16, face = "bold"),
-    axis.title = element_text(size = 13),
-    axis.text = element_text(size = 10),
-    legend.title = element_text(size = 14),
-    legend.text = element_text(size = 12)
+    plot.title = element_text(size = 26, face = "bold"),
+    axis.title = element_text(size = 23),
+    axis.text = element_text(size = 18),
+    legend.title = element_text(size = 23),
+    legend.text = element_text(size = 21),
+    legend.position = "none"
   )
 timebox
 
