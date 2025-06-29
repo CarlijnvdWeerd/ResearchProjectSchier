@@ -3,7 +3,7 @@ renv::restore()
 
 # Calculate counts per Week and Strategy
 counts <- behaviors |>
-  group_by(Week, Strategy, Habitat) |>
+  group_by(Week, Strategy) |>
   summarise(n = n_distinct(Observation_id), .groups = "drop") |>
   filter(!Week %in% c("9", "11","12", "13", "15"))
 
@@ -25,87 +25,8 @@ behaviors$Habitat <- behaviors$Habitat |> str_trim()
    distinct(Three_letter_code, Week, .keep_all = TRUE) |>
    filter(!Week %in% c("12", "13"))
 
-# Base boxplot
- # Create a new variable for combined Strategy and Habitat
- visual$Strat_Hab <- interaction(visual$Strategy, visual$Habitat, sep = " - ")
-print(visual)
 
- # Define custom colors (expand as needed based on your combinations)
- custom_colors <- c(
-   "early_northward_migration - Land" = "#d73027",
-   "early_northward_migration - Water" = "#fc8d59",
-   "early_northward_migration - Combination" = "#fee090",
-   "late_northward_migration - Land" = "#91bfdb",
-   "late_northward_migration - Water" = "#4575b4",
-   "late_northward_migration - Combination" = "#74add1",
-   "overwinterer - Land" = "#1b7837",
-   "overwinterer - Water" = "#a6dba0",
-   "overwinterer - Combination" = "#d9f0d3"
- )
  
- p1 <- ggplot(visual |> filter(visually_foraging < 200),
-              aes(x = as.factor(Week), y = visually_foraging,
-                  fill = Strat_Hab)) +
-   geom_boxplot(position = position_dodge(width = 0.9)) +
-   scale_fill_manual(values = custom_colors) +
-   theme_minimal(base_size = 14) +
-   labs(
-     title = "Visually foraging by Strategy and Habitat (within Week)",
-     x = "Week",
-     y = "Duration of visually foraging in s",
-     fill = "Strategy - Habitat"
-   ) +
-   theme(
-     axis.text.x = element_text(size = 12),
-     axis.text.y = element_text(size = 12),
-     axis.title.x = element_text(size = 14),
-     axis.title.y = element_text(size = 14),
-     plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
-     legend.position = "right"
-   )
- 
- 
-p1
-
-p1 <- ggplot(visual |> filter(visually_foraging < 200),
-             aes(x = as.factor(Week), y = visually_foraging, 
-                 fill = Strategy)) +
-  geom_boxplot(position = position_dodge(width = 0.75)) +
-  scale_fill_manual(values = c("#FF9999", "#1ED760", "#66B3FF")) +
-  theme_minimal(base_size = 14) +
-  labs(
-    title = "Visually foraging by Strategy and Habitat",
-    x = "Week",
-    y = "Duration of visually foraging in s") +
-  theme(
-    axis.text.x = element_text(size = 12),
-    axis.text.y = element_text(size = 12),
-    axis.title.x = element_text(size = 14),
-    axis.title.y = element_text(size = 14),
-    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
-    legend.position = "top"
-  ) +
-  facet_wrap(~ Habitat)
-
-# If you want the counts on top:
-p2 <- p1 + geom_text(data = counts,
-                     aes(x = as.factor(Week), y = 140, label = n),
-                     position = position_dodge(width = 0.9), size = 4)
-p2
-
-
-# Add text labels with counts above boxes
-#p2 <- p1 + geom_text(data = counts, aes(x = as.factor(Week), 
-#                                        y = 140, 
-#                                        label = paste0(n)),
-#                     position = position_dodge(width = 1.00), 
-#                                          size = 4)
-#p2
-
-# The graph shows some differences in duration of foraging walking per strategy.
-# So it would be interesting to analyse this further 
-
-
 # Check for normality of visually_foraging
 ggplot(visual, aes(x = visually_foraging)) +
   geom_histogram(bins = 30, fill = "#69b3a2", color = "black") +
@@ -130,157 +51,113 @@ ggplot(visual, aes(x = fitted(lm(visually_foraging ~ Strategy, data = visual)),
   ) +
   theme_minimal()
 
-#### So data is not normally distributed, need to do choose another model than lm, use glm instead
-glm1 <- glm(visually_foraging ~ 1 , family = Gamma(link = "log"),
+visual$vf_log_reflected <- log(max(visual$visually_foraging, na.rm = TRUE) + 1 - visual$visually_foraging)
+visual$vf_squared <- visual$visually_foraging^2
+
+model_logref <- lmer(vf_log_reflected ~ Week * Strategy + (1 | Three_letter_code) + 
+                       (1 | Habitat) + (1 | Tide) + (1 | Transect_ID), data = visual)
+
+model_squared <- lmer(vf_squared ~ Week * Strategy + (1 | Three_letter_code) + 
+                        (1 | Habitat) + (1 | Tide) + (1 | Transect_ID), data = visual)
+
+AIC(model_logref, model_squared)
+plot(model_logref)
+plot(model_squared)
+qqnorm(resid(model_logref)); qqline(resid(model_logref))
+## so use log reflected transformation
+
+lm1 <- lm(vf_log_reflected ~ 1 , 
             data = visual)
-summary(glm1)
 
-glm2 <- glm(visually_foraging ~ Week, family = Gamma(link = "log"),
+lm2 <- lm(vf_log_reflected ~ Week, 
             data = visual)
-summary(glm2)
 
-glm3 <- glm(visually_foraging ~ Strategy, 
-              family = Gamma(link = "log"),
+lm3 <- lm(vf_log_reflected ~ Strategy, 
             data = visual)
-summary(glm3)
 
-glm4 <- glm(visually_foraging ~ Transect_ID, 
-              family = Gamma(link = "log"),
+lm4 <- glm(vf_log_reflected ~ Transect_ID, 
+           data = visual)
+
+lm5 <- lm(vf_log_reflected ~ Habitat,
             data = visual)
-summary(glm4)
 
-glm5 <- glm(visually_foraging ~ Habitat, 
-              family = Gamma(link = "log"),
+lm6 <- lm(vf_log_reflected ~ Tide, 
             data = visual)
-summary(glm5)
 
-glm6 <- glm(visually_foraging ~ Tide, 
-              family = Gamma(link = "log"),
-            data = visual)
-summary(glm6)
-
-model.sel(glm1, glm2, glm3, glm4, glm5, glm6)
-
-glmer1 <- glmer(visually_foraging ~ Week * Strategy + 
+lmer1 <- lmer(vf_log_reflected ~ Week * Strategy + 
                   (1 | Three_letter_code) + (1 | Habitat) + 
                   (1 | Tide) + (1 | Transect_ID),
-                family = Gamma(link = "log"),
-                data = visual,
-                control = glmerControl(optimizer = "bobyqa", 
-                                       optCtrl = list(maxfun = 1e5)))
-summary(glmer1)
+                data = visual)
 
-glmer2 <- glmer(visually_foraging ~ Week * Strategy + 
-          (1 | Habitat) + (1|Tide) + (1 | Transect_ID), 
-                family = Gamma(link = "log"),
-                data = visual,
-                control = glmerControl(optimizer = "bobyqa", 
-                                       optCtrl = list(maxfun = 1e5)))
-summary(glmer2)
+lmer2 <- lmer(vf_log_reflected ~ Week * Strategy + 
+          (1 | Habitat) + (1|Tide) + (1 | Transect_ID),
+                data = visual)
 
-glmer3 <- glmer(visually_foraging ~ Week * Strategy + 
+lmer3 <- lmer(vf_log_reflected ~ Week * Strategy + 
              (1 | Tide) + (1 | Transect_ID), 
-                family = Gamma(link = "log"),
-                data = visual,
-                control = glmerControl(optimizer = "bobyqa", 
-                                       optCtrl = list(maxfun = 1e5)))
-summary(glmer3)
+                data = visual)
 
-glmer4 <- glmer(visually_foraging ~ Week * Strategy + 
+lmer4 <- lmer(vf_log_reflected ~ Week * Strategy + 
                 (1 | Transect_ID) + (1 | Habitat),
-                family = Gamma(link = "log"),
-                data = visual,
-                control = glmerControl(optimizer = "bobyqa", 
-                                       optCtrl = list(maxfun = 1e5)))
-summary(glmer4)
+                data = visual)
 
-glmer5 <- glmer(visually_foraging ~ Week * Strategy + (1 | Tide), 
-                family = Gamma(link = "log"),
-                data = visual,
-                control = glmerControl(optimizer = "bobyqa", 
-                                       optCtrl = list(maxfun = 1e5)))
-summary(glmer5)
+lmer5 <- lmer(vf_log_reflected ~ Week * Strategy + (1 | Tide), 
+                data = visual)
 
-glmer6 <- glmer(visually_foraging ~Week * Strategy + (1 | Transect_ID),
-                family = Gamma(link = "log"),
-                data = visual,
-                control = glmerControl(optimizer = "bobyqa", 
-                                       optCtrl = list(maxfun = 1e5)))
-summary(glmer6)
+lmer6 <- lmer(vf_log_reflected ~ Week * Strategy + (1 | Transect_ID),
+                data = visual)
 
-glmer7 <- glmer(visually_foraging ~ Week * Strategy + 
+lmer7 <- lmer(vf_log_reflected ~ Week * Strategy + 
                   (1 | Habitat), 
-                family = Gamma(link = "log"),
-                data = visual,
-                control = glmerControl(optimizer = "bobyqa", 
-                                       optCtrl = list(maxfun = 1e5)))
-summary(glmer7)
+                data = visual)
 
-AIC(glmer1, glmer2, glmer3, glmer4, glmer5, glmer6, glmer7)
-model.sel(glmer1, glmer2, glmer3, glmer4, glmer5, glmer6, glmer7, glm1, glm2, glm3, glm4, glm5, glm6)
 
-glm7 <- glm(visually_foraging ~ Week * Strategy + Habitat,
-            family = Gamma(link = "log"),
+model.sel(lmer1, lmer2, lmer3, lmer4, lmer5, lmer6, lmer7, lm1, lm2, lm3, lm4, lm5, lm6)
+
+lm7 <- lm(vf_log_reflected ~ Week * Strategy + Habitat,
             data = visual)
-summary(glm7)
 
-glm8 <- glm(visually_foraging ~ Week + Habitat,
-            family = Gamma(link = "log"),
+lm8 <- lm(vf_log_reflected ~ Week + Habitat,
             data = visual)
-summary(glm8)
 
-model.sel(glm5, glm7, glm8)
+model.sel(lm5, lm7, lm8)
 
-glm9 <- glm(visually_foraging ~ Week + Habitat + Strategy,
-            family = Gamma(link = "log"),
+lm9 <- lm(vf_log_reflected ~ Week + Habitat + Strategy,
             data = visual)
-summary(glm9)
 
-glm10 <- glm(visually_foraging ~ Week * Strategy,
-             family = Gamma(link = "log"),
+lm10 <- lm(vf_log_reflected ~ Week * Strategy,
              data = visual)
-summary(glm10)
 
-model.sel(glm8, glm9, glm10)
+model.sel(lm8, lm9, lm10)
 
-plot(residuals(glm8))
-glm8_log <- glm(log(visually_foraging) ~ Week + Habitat, data = visual)
-plot(residuals(glm8_log))
+plot(residuals(lm9))
 
-glm11<- glm(log(visually_foraging) ~ Week + Habitat, data = visual, family = gaussian())
-summary(glm11)
+lm11<- lm(vf_log_reflected ~ Week + Habitat + Strategy, 
+             data = visual)
 
-glm12<- glm(log(visually_foraging) ~ Week + Habitat + Strategy, 
-             data = visual, family = gaussian())
-summary(glm12)
+lm12 <- lm(vf_log_reflected ~ Week * Strategy * Habitat, 
+             data = visual)
+model.sel(lm10, lm11, lm12, lm9)
 
-glm13 <- glm(log(visually_foraging) ~ Week * Strategy * Habitat, 
-             data = visual, family = gaussian())
-summary(glm13)
 
-model.sel(glm11, glm12, glm13, glm8)
-plot(residuals(glm13))
+lm13 <- lm(vf_log_reflected ~ poly(Week, 2) * Strategy + Habitat,
+                data = visual)
+summary(lm13)
 
-glm14 <- glm(visually_foraging ~ poly(Week, 2) * Strategy + Habitat,
-                family = Gamma(link = "log"), data = visual)
+lm14 <- lm(vf_log_reflected ~ splines::ns(Week, df = 4) * Strategy + Habitat,
+                  data = visual)
 
-glm15 <- glm(visually_foraging ~ splines::ns(Week, df = 4) * Strategy + Habitat,
-                  family = Gamma(link = "log"), data = visual)
+model.sel(lm9, lm13, lm14)
 
-model.sel(glm8, glm14, glm15)
+lm15 <- lm(vf_log_reflected ~ Habitat * Strategy + Week, 
+              data = visual)
 
-glm16 <- glm(visually_foraging ~ Habitat * Strategy + Week, 
-             family = Gamma(link = "log"), data = visual)
-
-model.sel(glm8, glm9, glm13, glm16)
-model_selection <-model.sel(glmer1, glmer2, glmer3, glmer4, glmer5, glmer6, glmer7, glm1, glm2, glm3, glm4, glm5, glm6, glm7, glm8, glm9, glm10, glm11, glm12, glm13, glm14, glm15, glm16)
+model.sel(lm9, lm13, lm15)
+model_selection <-model.sel(lmer1, lmer2, lmer3, lmer4, lmer5, lmer6, lmer7, lm1, lm2, lm3, lm4, lm5, lm6, lm7, lm8, lm9, lm10, lm11, lm12, lm13, lm14, lm15)
 model_selection
 
 # Load necessary package
 library(MuMIn)
-
-# Assuming 'model.sel' object is named 'model_selection'
-# Example: model_selection <- model.sel(glm13, glm11, glm12, ...)
 
 # Convert to data frame for easier manipulation
 model_df <- as.data.frame(model_selection)
@@ -297,131 +174,44 @@ head(model_df)
 # Optional: save to CSV
 write.csv(model_df, "model_selection_table.csv", row.names = FALSE)
 
-
-#install.packages("ggeffects")
-#library(ggeffects)
-#pred <- ggpredict(glm13, terms = c("Week", "Strategy", "Habitat"))
-
-#visual$Strategy <- factor(visual$Strategy, levels = c(
-#  "early_northward_migration", "late_northward_migration", #"overwinterer"
-#))
-
-#pred$group <- factor(pred$group, levels = c(
-#  "early_northward_migration", "late_northward_migration", #"overwinterer"
-#))
-
-#ggplot(visual, aes(x = as.factor(Week), y = visually_foraging)) +
-#  geom_boxplot(aes(fill = Strategy), alpha = 0.5) +
-  
-  # Prediction lines and confidence ribbons
-#  geom_ribbon(data = pred, 
-#              aes(x = as.factor(x), ymin = conf.low, ymax = conf.high, #fill = group), 
-#              alpha = 0.2, inherit.aes = FALSE) +
-  
-##  geom_line(data = pred, 
-#            aes(x = as.factor(x), y = predicted, color = group, group #= group), 
-#            size = 1.2, inherit.aes = FALSE) +
-  
-#  labs(y = "Duration of visually foraging (s)", 
-#       x = "Week", 
-#       fill = "Strategy", 
-#       color = "Strategy") +
-  
-#  theme_minimal() +
-#  theme(legend.position = "right")
-
-
-
-#new_data <- unique(behaviors[, c("Week", "Strategy", "Transect_ID", #"Habitat", "Tide", "Three_letter_code")])
-#new_data$predicted <- exp(predict(glm13, newdata = new_data, re.form = #~ 0, type = "response"))
-#new_data <- new_data |>
-#  filter(!Week %in% c("9", "11", "12", "13", "15"))
-
-#new_data$Strategy <- factor(new_data$Strategy, levels = c(
-#  "early_northward_migration", "late_northward_migration", #"overwinterer"
-#))
-
-library(dplyr)
-library(stringr)
-
-# Clean Strategy and Habitat in `visual`
-visual <- visual %>%
-  mutate(
-    Strategy = str_trim(as.character(Strategy)),
-    Strategy = na_if(Strategy, ""),
-    Habitat = str_trim(as.character(Habitat)),
-    Habitat = na_if(Habitat, "")
-  ) %>%
-  filter(!is.na(Strategy), !is.na(Habitat))
-
-# Set factor levels explicitly
-visual$Strategy <- factor(visual$Strategy, levels = c(
-  "early_northward_migration", "late_northward_migration", "overwinterer"
-))
-visual$Habitat <- factor(visual$Habitat)
-
-
-# Step 1: Create the data
-new_data_smooth <- expand.grid(
+# Create new data for prediction (adjust as needed)
+newdata <- expand.grid(
   Week = seq(min(visual$Week), max(visual$Week), length.out = 100),
-  Strategy = levels(visual$Strategy),
+  Strategy = unique(visual$Strategy),
   Habitat = unique(visual$Habitat)
 )
 
-# Step 2: Apply factor levels *after* creation
-new_data_smooth$Strategy <- factor(new_data_smooth$Strategy, levels = levels(visual$Strategy))
-new_data_smooth$Habitat <- factor(new_data_smooth$Habitat, levels = levels(visual$Habitat))
+# Get predictions on transformed scale with confidence intervals
+pred <- predict(lm13, newdata, interval = "confidence")
 
-# Step 3: Predict
-pred_smooth <- predict(glm13, newdata = new_data_smooth, type = "link", se.fit = TRUE)
+# Extract max value from original data
+max_val <- max(visual$visually_foraging, na.rm = TRUE)
+
+# Back-transform predicted fit and intervals
+newdata$fit <- max_val + 1 - exp(pred[,"fit"])
+newdata$lwr <- max_val + 1 - exp(pred[,"lwr"])
+newdata$upr <- max_val + 1 - exp(pred[,"upr"])
+
+pred_summary <- newdata |>
+  group_by(Week, Strategy) |>
+  summarise(
+    fit = mean(fit),
+    lwr = mean(lwr),
+    upr = mean(upr),
+    .groups = "drop")
 
 
-# Back-transform (exponentiate because you log-transformed the response)
-new_data_smooth$predicted <- exp(pred_smooth$fit)
-new_data_smooth$lower <- exp(pred_smooth$fit - 1.96 * pred_smooth$se.fit)
-new_data_smooth$upper <- exp(pred_smooth$fit + 1.96 * pred_smooth$se.fit)
-
-library(stringr)
-library(dplyr)
-
-# Clean up Strategy values
-visual <- visual %>%
-  mutate(
-    Strategy = str_trim(as.character(Strategy)),
-    Strategy = factor(Strategy, levels = c(
-      "early_northward_migration", "late_northward_migration", "overwinterer"
-    ))
-  )
-
-new_data_smooth <- new_data_smooth %>%
-  mutate(
-    Strategy = str_trim(as.character(Strategy)),
-    Strategy = factor(Strategy, levels = levels(visual$Strategy))
-  )
-
-p3 <- ggplot(visual, aes(x = Week, y = visually_foraging)) +
-  # Boxplot with discrete x-axis and dodge by Strategy
+p_visual_forage <- ggplot(visual, aes(x = Week, y = visually_foraging)) +
   geom_boxplot(aes(group = interaction(Week, Strategy), fill = Strategy), 
                position = position_dodge(width = 0.8)) +
-  
-   # Prediction lines
-  geom_line(
-    data = new_data_smooth,
-    aes(x = Week, y = predicted, 
-        color = Strategy, group = interaction(Strategy, Habitat)),
-    size = 1.0,
-    inherit.aes = FALSE
-  ) +
-  
-  geom_text(
-    data = counts,
-    aes(x = Week, y = 140, label = n, group = Strategy, color = Strategy),
-    position = position_dodge(width = 0.8),
-    size = 2,
-    inherit.aes = FALSE
-  ) +
-
-  # Manual colors
+  geom_line(data = pred_summary, aes(x = Week, y = fit, color = Strategy, 
+                            group = Strategy), size = 1.0, inherit.aes = FALSE) +
+  geom_ribbon(data = pred_summary, aes(x = Week, ymin = lwr, ymax = upr, 
+                                       fill = Strategy), alpha = 0.2, 
+              inherit.aes = FALSE) +
+  geom_text(data = counts, aes(x = Week, y = 140, label = n, group = Strategy, 
+                               color = "black"),
+    position = position_dodge(width = 0.8), size = 4.2, inherit.aes = FALSE) +
   scale_color_manual(values = c(
     "overwinterer" = "#3487a8",
     "late_northward_migration" = "#2d8062",
@@ -432,121 +222,33 @@ p3 <- ggplot(visual, aes(x = Week, y = visually_foraging)) +
     "late_northward_migration" = "#4DD2A4",
     "early_northward_migration" = "#E777F2"
   )) +
-  
-  # Facet by Habitat
-  facet_wrap(~ Habitat) +
-  
-  # Labels and theme
   labs(
     y = "Duration of visually foraging (s)",
     x = "Week",
-    title = "Visually foraging by Strategy across Habitats"
-  ) +
+    title = "Visually foraging by Strategy across Habitats") +
   theme_minimal() +
   theme(
-    axis.text.x = element_text(size = 12),
-    axis.text.y = element_text(size = 12),
-    axis.title.x = element_text(size = 14),
-    axis.title.y = element_text(size = 14),
-    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
-    legend.position = "none"
-  )
-p3
+    axis.text.x = element_text(size = 20),
+    axis.text.y = element_text(size = 20),
+    axis.title.x = element_text(size = 21),
+    axis.title.y = element_text(size = 21),
+    plot.title = element_text(size = 25, face = "bold", hjust = 0.5),
+    legend.position = "none")
+p_visual_forage
 
-p4 <- p3 + geom_text(data = counts,
-            aes(x = Week, y = 140, label = n),
-            position = position_dodge(width = 0.9), size = 2)
-
-p4
-
-#p3 <- p2 +
-#  geom_line(
-#    data = new_data,
-#    aes(
-#      x = as.factor(Week),
-#      y = predicted,
-#    shape = Strategy,
-#      group = Strategy,
-#      color = Strategy
-#    ),
-#    size = 1,
-#    position = position_dodge(width = 0.6)
-#  )  +
-#  scale_color_manual(values = c(
-#    "overwinterer" = "#5190cf",
-#    "late_northward_migration" = "#0FA85B",
-#    "early_northward_migration" = "#c77575"  # and here
-#  )) +
-#  theme_minimal() +
-#  theme(
-#    axis.text.x = element_text(size = 12),       # X-axis numbers
-#    axis.text.y = element_text(size = 12),       # Y-axis labels
-#    axis.title.x = element_text(size = 14),      # X-axis title
-#    axis.title.y = element_text(size = 14),      # Y-axis title
-#    plot.title = element_text(size = 16, face = "bold", hjust = 0.5), #Centered & bold title
-#    legend.position = "none")
-#  
-#p3
-
-# Load required packages
+# Loadpackages
 library(emmeans)
 library(multcompView)
 
-# Compute estimated marginal means by Strategy, within each Week × Habitat combination
-emm <- emmeans(glm13, ~ Strategy | Week * Habitat, type = "response")
+# Pairwise comparison
+emm_visual <- emm <- emmeans(lm13, ~ Strategy | Week * Habitat, type = "response")
 
-# Pairwise comparisons of Strategy within each Week × Habitat group
-pairwise_results <- pairs(emm, adjust = "tukey", type = "response")
-pairwise_summary <- summary(pairwise_results)
+# Use cld to assign group letters
+cld_visual <- cld(emm_visual, adjust = "tukey", Letters = letters, 
+                  type = "response")
 
-# Print summary of comparisons
-print(pairwise_summary)
+# View result
+print(cld_visual)
 
-# Extract p-values and contrast names
-pvals <- pairwise_summary$p.value
-names(pvals) <- gsub(" / ", " - ", pairwise_summary$contrast)
-
-# Remove duplicates (if any)
-pvals_unique <- pvals[!duplicated(names(pvals))]
-
-# Generate compact letter display for grouping
-group_letters <- multcompLetters(pvals_unique)$Letters
-
-library(stringr)  # for str_trim()
-
-# Trim spaces from names
-clean_names <- str_trim(names(group_letters))
-
-# Remove duplicates: keep first occurrence only
-unique_indices <- !duplicated(clean_names)
-clean_names_unique <- clean_names[unique_indices]
-group_letters_unique <- group_letters[unique_indices]
-
-# Rename with cleaned names
-names(group_letters_unique) <- clean_names_unique
-
-# Define factor level order (optional)
-levels_strat <- c("early_northward_migration", "late_northward_migration", "overwinterer")
-
-# Match levels to cleaned names
-group_letters_ordered <- group_letters_unique[match(levels_strat, clean_names_unique)]
-
-print(group_letters_ordered)
-
-
-#p4 <- p3 +
-#  geom_text(data = data.frame(
-#    Week = factor(c(13, 16, 17, 18, 19, 20, 21)),
-#    label = c("***", "***", "***", "***", "***", "***", "***"),
-#    y = c(115, 120, 118, 118, 130, 115, 120)
-#  ),
-#  aes(x = Week, y = y, label = label),
-#  vjust = -0.5,
-#  size = 4,
-#  inherit.aes = FALSE)  # <--- This is the key!
-#p4
-
-
-#ggsave("foraging_walking_duration_strategy.png", plot = p2, width = 13, height = 6, dpi = 300)
-ggsave("foraging_walking_duration_strategy_with_predictions.png", plot = p3, width = 13, height = 6, dpi = 300)
+ggsave("foraging_walking_duration_strategy_with_predictions.png", plot = p_visual_forage, width = 13, height = 6, dpi = 300)
 

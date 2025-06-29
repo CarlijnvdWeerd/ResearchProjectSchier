@@ -31,10 +31,10 @@ p5a
 counts_point <- counts_point |>
   filter(!Week %in% c("12", "13"))
 
-p5b <- p5a + geom_text(data = counts_point |> filter(Behavior == "Probing"), aes(x = as.factor(Week), 
-                                                                                 y = 1.6, 
-                                                                                 label = paste0("", n)),
-                       position = position_dodge(width = 0.8), size = 3)
+p5b <- p5a + geom_text(data = counts_point |> filter(Behavior == "Probing"),
+                       aes(x = as.factor(Week), y = 1.6, 
+                       label = paste0("", n)),
+                       position = position_dodge(width = 0.8), size = 8) 
 p5b
 
 point_behaviors$Tide <- point_behaviors$Tide |>
@@ -42,146 +42,108 @@ point_behaviors$Tide <- point_behaviors$Tide |>
 point_behaviors$Habitat <- point_behaviors$Habitat |>
   str_trim()
 
+ggplot(point_behaviors |> filter(Behavior == "Probing"), aes(x = Behavior_Rate)) +
+  geom_histogram(bins = 30, fill = "#69b3a2", color = "black") +
+  labs(
+    title = "Distribution of probing Durations",
+    x = "Probing Duration (seconds)",
+    y = "Count"
+  ) +
+  theme_minimal()
 
-glm1 <- glm(Behavior_Rate ~ 1, 
-            family = Gamma(link = "log"),
+shapiro.test(point_behaviors$Behavior_Rate[point_behaviors$Behavior == "Probing"])
+
+
+lm1 <- lm(Behavior_Rate ~ 1, 
             data = subset(point_behaviors, Behavior == "Probing"))
-summary(glm1)
 
-glm2 <- glm(Behavior_Rate ~ Week, 
-            family = Gamma(link = "log"),
+lm2 <- lm(Behavior_Rate ~ Week, 
             data = subset(point_behaviors, Behavior == "Probing"))
-summary(glm2)
 
-glm3 <- glm(Behavior_Rate ~ Strategy, 
-            family = Gamma(link = "log"),
+lm3 <- lm(Behavior_Rate ~ Strategy, 
             data = subset(point_behaviors, Behavior == "Probing"))
-summary(glm3)
 
-glm4 <- glm(Behavior_Rate ~ Tide, 
-            family = Gamma(link = "log"),
+lm4 <- lm(Behavior_Rate ~ Tide, 
             data = subset(point_behaviors, Behavior == "Probing"))
-summary(glm4)
 
-glm5 <- glm(Behavior_Rate ~   Habitat, 
-            family = Gamma(link = "log"),
+lm5 <- lm(Behavior_Rate ~   Habitat,
             data = subset(point_behaviors, Behavior == "Probing"))
-summary(glm5)
 
-glm6 <- glm(Behavior_Rate ~ Transect_ID, 
-            family = Gamma(link = "log"),
-            data = subset(point_behaviors, Behavior == "Probing"))
-summary(glm6)
+model.sel(lm1, lm2, lm3, lm4, lm5)
 
-model.sel(glm1, glm2, glm3, glm4, glm5, glm6)
-
-glmfull <- glm(Behavior_Rate ~ Week + Strategy + Tide + Habitat 
-               + Transect_ID, 
-               family = Gamma(link = "log"),
+lmfull <- lm(Behavior_Rate ~ Week + Strategy + Tide + Habitat , 
                data = subset(point_behaviors, Behavior == "Probing"))
-summary(glmfull)
 
-glmreduced1 <- glm(Behavior_Rate ~ Week + Strategy + Tide + Habitat,
-                   family = Gamma(link = "log"),
+lmreduced1 <- lm(Behavior_Rate ~ Week + Strategy + Tide + Habitat,
                    data = subset(point_behaviors, Behavior == "Probing"))
-summary(glmreduced1)
 
-glmreduced2 <- glm(Behavior_Rate ~ Week + Strategy + Tide,
-                   family = Gamma(link = "log"),
+lmreduced2 <- lm(Behavior_Rate ~ Week + Strategy + Tide,
                    data = subset(point_behaviors, Behavior == "Probing"))
-summary(glmreduced2)
 
-glmreduced3 <- glm(Behavior_Rate ~ Week + Tide, 
-                   family = Gamma(link = "log"),
+lmreduced3 <- lm(Behavior_Rate ~ Week + Tide, 
                    data = subset(point_behaviors, Behavior == "Probing"))
-summary(glmreduced3)
 
-glm_int1 <- glm(Behavior_Rate ~ Week * Strategy + Tide, 
-               family = Gamma(link = "log"),
+lm_int1 <- lm(Behavior_Rate ~ Week * Strategy,
                data = subset(point_behaviors, Behavior == "Probing"))
-summary(glm_int1)
 
-glm_int2 <- glm(Behavior_Rate ~ Week * Strategy * Tide, 
-               family = Gamma(link = "log"),
+lm_pol1 <- lm(Behavior_Rate ~ poly(Week,2) + Strategy 
+              + Tide + Habitat, 
                data = subset(point_behaviors, Behavior == "Probing"))
-summary(glm_int2)
 
-glm_int3 <- glm(Behavior_Rate ~ Week * Tide + Strategy,
-                family = Gamma(link = "log"),
+lm_pol2 <- lm(Behavior_Rate ~ poly(Week,5) + Strategy + Tide + Habitat, 
+               data = subset(point_behaviors, Behavior == "Probing"))
+
+lm_int2 <- lm(Behavior_Rate ~ Week * Strategy * Tide, 
+               data = subset(point_behaviors, Behavior == "Probing"))
+
+lm_int3 <- lm(Behavior_Rate ~ Week * Tide + Strategy,
                 data = subset(point_behaviors, Behavior == "Probing"))
-summary(glm_int3)
 
-model.sel(glmfull, glmreduced1, glmreduced2, glmreduced3, glm_int1, glm_int2, glm_int3, glm1, glm2, glm3, glm4, glm5, glm6)
+model.sel(lmfull, lmreduced1, lmreduced2, lmreduced3, lm_int1, lm_int2, lm_int3, lm1, lm2, lm3, lm4, lm5)
 
-glmerfull <- glmer(Behavior_Rate ~ Week + Strategy + (1 | Three_letter_code)
-                   + (1 | Transect_ID) + (1 | Tide) + (1 | Habitat), 
-                   family = Gamma(link = "log"),
-                   data = subset(point_behaviors, Behavior == "Probing"),
-                   control = glmerControl(optimizer = "bobyqa", 
-                                          optCtrl = list(maxfun = 2e5)))
-summary(glmerfull)
+lmerfull <- lmer(Behavior_Rate ~ Week + Strategy + (1 | Three_letter_code)
+                    + (1 | Tide) + (1 | Habitat), 
+                   data = subset(point_behaviors, Behavior == "Probing"))
 
-glmerreduced1 <- glmer(Behavior_Rate ~ Week + Strategy 
-                       + (1 | Three_letter_code) + (1 | Transect_ID)
+lmerreduced1 <- lmer(Behavior_Rate ~ Week + Strategy 
+                       + (1 | Three_letter_code) 
                        + (1 | Tide), 
-                       family = Gamma(link = "log"),
-                       data = subset(point_behaviors, Behavior == "Probing"),
-                       control = glmerControl(optimizer = "bobyqa", 
-                                              optCtrl = list(maxfun = 2e5)))
-summary(glmerreduced1)
+                       data = subset(point_behaviors, Behavior == "Probing"))
 
-glmerreduced2 <- glmer(Behavior_Rate ~ Week + Strategy 
-                       + (1 | Three_letter_code) + (1 | Transect_ID), 
-                       family = Gamma(link = "log"),
-                       data = subset(point_behaviors, Behavior == "Probing"),
-                       control = glmerControl(optimizer = "bobyqa", 
-                                              optCtrl = list(maxfun = 2e5)))
-summary(glmerreduced2)
+lmerreduced2 <- lmer(Behavior_Rate ~ Week + Strategy 
+                       + (1 | Three_letter_code) ,
+                     data = subset(point_behaviors, Behavior == "Probing"))
 
-glmer_int1 <- glmer(Behavior_Rate ~ Week * Strategy + (1|Three_letter_code) 
-                    + (1|Tide) + (1|Transect_ID), 
-                   family = Gamma(link = "log"),
-                   data = subset(point_behaviors, Behavior == "Probing"),
-                   control = glmerControl(optimizer = "bobyqa", 
-                                          optCtrl = list(maxfun = 2e5)))
-summary(glmer_int1)
+lmer_int1 <- lmer(Behavior_Rate ~ Week * Strategy + (1|Three_letter_code) 
+                    + (1|Tide) , 
+                   data = subset(point_behaviors, Behavior == "Probing"))
 
-glmer_int2 <- glmer(Behavior_Rate ~ Week * Strategy + (1|Three_letter_code)
-                    + (1|Transect_ID),
-                    family = Gamma(link="log"),
-                    data = subset(point_behaviors, Behavior == "Probing"),
-                    control = glmerControl(optimizer = "bobyqa", 
-                                          optCtrl = list(maxfun = 2e5)))
-summary(glmer_int2)
+
+lmer_int2 <- lmer(Behavior_Rate ~ Week * Strategy + (1|Three_letter_code),
+                  data = subset(point_behaviors, Behavior == "Probing"))
+
 
 library(splines)
-glmer_spline <- glmer(Behavior_Rate ~ ns(Week, df = 4) + Strategy + 
-                        (1 | Three_letter_code) + (1 | Transect_ID) + (1 | Tide),
-                      family = Gamma(link = "log"),
-                      data = subset(point_behaviors, Behavior == "Probing"),
-                      control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5)))
+lmer_spline <- lmer(Behavior_Rate ~ ns(Week, df = 4) + Strategy + 
+                        (1 | Three_letter_code) + (1 | Tide),
+                     data = subset(point_behaviors, Behavior == "Probing"))
 
-glmer_poly2 <- glmer(
-  Behavior_Rate ~ poly(Week, 2) + Strategy +
-    (1 | Three_letter_code) + (1 | Transect_ID) + (1 | Tide),
-  family = Gamma(link = "log"),
-  data = subset(point_behaviors, Behavior == "Probing"),
-  control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5)))
+lmer_poly2 <- lmer(Behavior_Rate ~ poly(Week, 2) + Strategy +
+    (1 | Three_letter_code)  + (1 | Tide),
+  data = subset(point_behaviors, Behavior == "Probing"))
 
-glmer_polyint <- glmer(Behavior_Rate ~ poly(Week, 2) * Strategy + 
-                       (1 | Three_letter_code) + (1 | Transect_ID) 
+lmer_polyint <- lmer(Behavior_Rate ~ poly(Week, 2) * Strategy + 
+                       (1 | Three_letter_code) 
                        + (1 | Tide),
-                       family = Gamma(link = "log"),
-                       data = subset(point_behaviors, Behavior == "Probing"),
-                       control = glmerControl(optimizer = "bobyqa", 
-                                              optCtrl = list(maxfun = 2e5)))
+                     data = subset(point_behaviors, Behavior == "Probing"))
 
 
-probing_model <- model.sel(glmfull, glmreduced1, glmreduced2, glmreduced3, glm_int1, glm_int2, glm_int3, glm1, glm2, glm3, glm4, glm5, glm6, glmerfull, glmerreduced1, glmerreduced2, glmer_int1, glmer_int2, glmer_spline, glmer_poly2, glmer_polyint)
+probing_model <- model.sel(lmfull, lmreduced1, lmreduced2, lmreduced3, lm_int1, lm_int2, lm_int3, lm1, lm2, lm3, lm4, lm5, lmerfull, lmerreduced1, lmerreduced2, lmer_int1, lmer_int2, lmer_spline, lmer_poly2, lmer_polyint, lm_pol2, lm_pol1)
 probing_model
-## Choose to use the model glmer_poly because it accounts for the mean difference in week (there is a dip in week 18) and it accounts for the random effect of three letter code. And the delta is underneath 2 and it still has weight of 0.116 which is i think quite okay because the best model in terms of AIC has a weight of 0.233
+## Choose lm_pol2
 
-plot(residuals(glmer_poly2))
+
+plot(residuals(lm_pol2))
 ## Which shows a not really a pattern which is good!
 
 
@@ -193,49 +155,42 @@ head(probing_model_df)
 # Save to CSV
 write.csv(probing_model_df, "probing_model_selection_table.csv", row.names = FALSE)
 
-point_behaviors$Strategy <- factor(point_behaviors$Strategy)
-point_behaviors$Three_letter_code <- factor(point_behaviors$Three_letter_code)
-point_behaviors$Transect_ID <- factor(point_behaviors$Transect_ID)
-point_behaviors$Tide <- factor(point_behaviors$Tide)
-
-strategies <- levels(point_behaviors$Strategy)
-three_letter <- levels(point_behaviors$Three_letter_code)
-transect_ids <- levels(point_behaviors$Transect_ID)
-tide <- levels(point_behaviors$Tide)
-
-weeks_seq <- seq(min(point_behaviors$Week), max(point_behaviors$Week), length.out = 500)
-
-new_probing_smooth <- expand.grid(
-  Week = 12:21,
-  Strategy = strategies,
-  Three_letter_code = three_letter,
-  Transect_ID = transect_ids,
-  Tide = tide,
-  stringsAsFactors = FALSE
+# Create new data for prediction (adjust as needed)
+newdata_prob <- expand.grid(
+  Week = seq(min(point_behaviors$Week), max(point_behaviors$Week), 
+             length.out = 100),
+  Strategy = unique(point_behaviors$Strategy),
+  Habitat = unique(point_behaviors$Habitat),
+  Transect_ID = unique(point_behaviors$Transect_ID),
+  Tide = unique(point_behaviors$Tide)
 )
 
-# Convert them back to factors using the original levels
-new_probing_smooth$Strategy <- factor(new_probing_smooth$Strategy, levels = strategies)
-new_probing_smooth$Three_letter_code <- factor(new_probing_smooth$Three_letter_code, levels = three_letter)
-new_probing_smooth$Transect_ID <- factor(new_probing_smooth$Transect_ID, levels = transect_ids)
-new_probing_smooth$Tide <- factor(new_probing_smooth$Tide, levels = tide)
+# Get predictions on  with confidence intervals
+pred_prob <- predict(lm_pol2, newdata_prob, interval = "confidence")
 
-new_probing_smooth$predicted <- predict(glmer_poly2,
-                                  newdata = new_probing_smooth,
-                                  re.form = NA,
-                                  type = "response")
-new_probing_smooth <- new_probing_smooth |>
-   filter(!Week %in% c("12", "13", "14", "15"))
+newdata_prob$fit <- pred_prob[,"fit"]
+newdata_prob$lwr <- pred_prob[,"lwr"]
+newdata_prob$upr <- pred_prob[,"upr"]
 
-p5c <- p5b +
-  geom_line(
-    data = new_probing_smooth,
-    aes(x = as.factor(Week), y = predicted, color = Strategy, 
-        group = Strategy),
-    size = 1.0, inherit.aes = FALSE
-  ) +
-  
-  # Manual colors
+pred_summary_prob <- newdata_prob |>
+  group_by(Week, Strategy) |>
+  summarise(
+    fit = mean(fit),
+    lwr = mean(lwr),
+    upr = mean(upr),
+    .groups = "drop")
+
+p_prob <- ggplot(point_behaviors |> filter(Behavior == "Probing"), aes(x = Week, y = Behavior_Rate)) +
+  geom_boxplot(aes(group = interaction(Week, Strategy), fill = Strategy), 
+               position = position_dodge(width = 0.8)) +
+  geom_line(data = pred_summary_prob, aes(x = Week, y = fit, color = Strategy, 
+                                     group = Strategy), size = 1.0, inherit.aes = FALSE) +
+  #geom_ribbon(data = pred_summary_prob, aes(x = Week, ymin = lwr, ymax = upr, 
+   #                                    fill = Strategy), alpha = 0.2, 
+   #           inherit.aes = FALSE) +
+  geom_text(data = counts_point |> filter(Behavior == "Probing"), aes(x = Week, y = 1.6, label = n, group = Strategy, 
+                               color = "black"),
+            position = position_dodge(width = 0.8), size = 6, inherit.aes = FALSE) +
   scale_color_manual(values = c(
     "overwinterer" = "#3487a8",
     "late_northward_migration" = "#2d8062",
@@ -247,74 +202,37 @@ p5c <- p5b +
     "early_northward_migration" = "#E777F2"
   )) +
   labs(
-    y = "Behaviour Rate",
+    y = "Behaviour Rate of Probing",
     x = "Week",
-    title = "Probing Rate per Strategy"
-  ) +
+    title = "Behaviour Rate per Strategy") +
   theme_minimal() +
   theme(
-    axis.text.x = element_text(size = 14),
-    axis.text.y = element_text(size = 14),
-    axis.title.x = element_text(size = 16),
-    axis.title.y = element_text(size = 16),
-    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
-    legend.position = "none"
-  )
+    axis.text.x = element_text(size = 20),
+    axis.text.y = element_text(size = 20),
+    axis.title.x = element_text(size = 21),
+    axis.title.y = element_text(size = 21),
+    plot.title = element_text(size = 25, face = "bold", hjust = 0.5),
+    legend.position = "none")
+p_prob
 
-p5c
-
-# Pairwise comparison
-emm_probing <- emm <- emmeans(glmer_poly2, ~ Strategy | Week, type = "response")
-
-
-# Use cld to assign group letters
-cld_probing <- cld(emm_probing, adjust = "tukey", Letters = letters, type = "response")
-
-# View result
-print(cld_probing)
-
-# Pairwise comparisons of Strategy within each Week × Habitat group
-pairwise_results_probing <- pairs(emm_probing, adjust = "tukey", type = "response")
-pairwise_summary_probing <- summary(pairwise_results_probing)
-
-# Print summary of comparisons
-print(pairwise_summary_probing)
-
-# Extract p-values and contrast names
-pvals <- pairwise_summary_probing$p.value
-names(pvals) <- gsub(" / ", " - ", pairwise_summary_probing$contrast)
-
-# Remove duplicates (if any)
-pvals_unique <- pvals[!duplicated(names(pvals))]
-
+# Loadpackages
+library(emmeans)
 library(multcompView)
 
-# Generate compact letter display for grouping
-group_letters <- multcompLetters(pvals_unique)$Letters
+# Pairwise comparison
+emm_prob <- emm <- emmeans(lm_pol2, ~ Strategy | Week , type = "response")
 
-library(stringr)  # for str_trim()
+# Use cld to assign group letters
+cld_prob <- cld(emm_prob, adjust = "tukey", Letters = letters, 
+                  type = "response")
 
-# Trim spaces from names
-clean_names <- str_trim(names(group_letters))
+# View result
+print(cld_prob)
 
-# Remove duplicates: keep first occurrence only
-unique_indices <- !duplicated(clean_names)
-clean_names_unique <- clean_names[unique_indices]
-group_letters_unique <- group_letters[unique_indices]
 
-# Rename with cleaned names
-names(group_letters_unique) <- clean_names_unique
+ggsave("probing_rate_per_strategy.png", plot = p_prob, width = 28, height = 10, dpi = 300)
 
-# Define factor level order (optional)
-levels_strat <- c("early_northward_migration", "late_northward_migration", "overwinterer")
-
-# Match levels to cleaned names
-group_letters_ordered <- group_letters_unique[match(levels_strat, clean_names_unique)]
-
-print(group_letters_ordered)
-
-ggsave("probing_rate_per_strategy.png", plot = p5c, width = 28, height = 10, dpi = 300)
-
+##############################################################################
 p6a <- ggplot(point_behaviors |> filter(Behavior == "Surface_pecking"),
               aes(x = as.factor(Week), y = Behavior_Rate, 
                   fill = Strategy)) +
@@ -326,191 +244,194 @@ p6a <- ggplot(point_behaviors |> filter(Behavior == "Surface_pecking"),
     x = "Week",
     y = "Duration Rate") +
   theme(
-    axis.text.x = element_text(size = 14),
-    axis.text.y = element_text(size = 14),
-    axis.title.x = element_text(size = 16),
-    axis.title.y = element_text(size = 16),
-    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    axis.text.x = element_text(size = 23),
+    axis.text.y = element_text(size = 23),
+    axis.title.x = element_text(size = 24),
+    axis.title.y = element_text(size = 24),
+    plot.title = element_text(size = 26, face = "bold", hjust = 0.5),
     legend.position = "none")
 p6a
 
 p6b <- p6a + geom_text(data = counts_point |> filter(Behavior == "Surface_pecking"), aes(x = as.factor(Week), 
                                                                                          y = 0.9, 
                                                                                          label = paste0("", n)),
-                       position = position_dodge(width = 0.8), size = 3)
+                       position = position_dodge(width = 0.8), size = 8)
 
 p6b
 
-glm1 <- glm(Behavior_Rate ~ 1, 
-            family = Gamma(link = "log"),
-            data = subset(point_behaviors, Behavior == "Surface_pecking"))
+ggplot(point_behaviors |> filter(Behavior == "Surface_pecking"), aes(x = Behavior_Rate)) +
+  geom_histogram(bins = 30, fill = "#69b3a2", color = "black") +
+  labs(
+    title = "Distribution of Surface pecks duration",
+    x = "surface pecks Duration (seconds)",
+    y = "Count"
+  ) +
+  theme_minimal()
 
-glm2 <- glm(Behavior_Rate ~ Week, 
-            family = Gamma(link = "log"),
-            data = subset(point_behaviors, Behavior == "Surface_pecking"))
+shapiro.test(point_behaviors$Behavior_Rate[point_behaviors$Behavior == "Surface_pecking"])
+# so not normal data
 
-glm3 <- glm(Behavior_Rate ~ Strategy,
-            family = Gamma(link = "log"),
-            data = subset(point_behaviors, Behavior == "Surface_pecking"))
+library(dplyr)
 
-glm4 <- glm(Behavior_Rate ~ Tide,
-            family = Gamma(link = "log"),
-            data = subset(point_behaviors, Behavior == "Surface_pecking"))
+surface_pecking <- point_behaviors |> 
+  filter(Behavior == "Surface_pecking") |> 
+  mutate(
+    Behavior_Rate_log = log(Behavior_Rate + 1),       # Replace 'Count' with your numeric variable
+    Behavior_Rate_sqrt = sqrt(Behavior_Rate)
+  )
 
-glm5 <- glm(Behavior_Rate ~ Habitat,
-            family = Gamma(link = "log"),
-            data = subset(point_behaviors, Behavior == "Surface_pecking"))
+hist(surface_pecking$Behavior_Rate_log, main = "Log-transformed")
+hist(surface_pecking$Behavior_Rate_sqrt, main = "Square-root-transformed")
 
-glm6 <- glm(Behavior_Rate ~ Transect_ID,
-            family = Gamma(link = "log"),
-            data = subset(point_behaviors, Behavior == "Surface_pecking"))
+model_logref <- lmer(Behavior_Rate_log~ Week * Strategy + (1 | Three_letter_code) + 
+                       (1 | Habitat) + (1 | Tide) + (1 | Transect_ID), data = surface_pecking)
 
-model.sel(glm1, glm2, glm3, glm4, glm5, glm6)
+model_squared <- lmer(Behavior_Rate_sqrt ~ Week * Strategy + (1 | Three_letter_code) + 
+                        (1 | Habitat) + (1 | Tide) + (1 | Transect_ID), data = surface_pecking)
 
-glmfull <- glm(Behavior_Rate ~ Week + Strategy + Tide + Habitat 
-               + Transect_ID, 
-               family = Gamma(link = "log"),
-               data = subset(point_behaviors, Behavior == "Surface_pecking"))
-summary(glmfull)
+AIC(model_logref, model_squared)
+plot(model_logref)
+plot(model_squared)
+qqnorm(resid(model_logref)); qqline(resid(model_logref))
+qqnorm(resid(model_squared)); qqline(resid(model_squared))
+# So the log-transformed model is better, so we will use that one
 
-glm_int1 <- glm(Behavior_Rate ~ Week * Strategy + Tide + Habitat 
-                + Transect_ID, 
-            family = Gamma(link = "log"),
-            data = subset(point_behaviors, Behavior == "Surface_pecking"))
-summary(glm_int1)
+lm1 <- lm(Behavior_Rate_log ~ 1, 
+            data = surface_pecking)
 
-glmer_full <- glmer(Behavior_Rate ~ Week + Strategy + (1 | Three_letter_code) 
-                + (1 | Transect_ID) + (1 | Tide) + (1 | Habitat), 
-                family = Gamma(link = "log"),
-                data = subset(point_behaviors, Behavior == "Surface_pecking"),
-                control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5)))
-summary(glmer_full)
+lm2 <- lm(Behavior_Rate_log ~ Week, 
+            data = surface_pecking)
 
-glmer_reduced1 <- glmer(Behavior_Rate ~ Week + Strategy + 
-                  (1 | Three_letter_code) + (1 | Habitat), 
-                family = Gamma(link = "log"),
-                data = subset(point_behaviors, Behavior == "Surface_pecking"),
-                control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5)))
-summary(glmer_reduced1)
+lm3 <- lm(Behavior_Rate_log ~ Strategy,
+         data = surface_pecking)
 
-glmer_reduced2 <- glmer(Behavior_Rate ~ Week + Strategy + Transect_ID 
+lm4 <- lm(Behavior_Rate_log ~ Tide,
+            data = surface_pecking)
+
+lm5 <- lm(Behavior_Rate_log ~ Habitat,
+            data = surface_pecking)
+
+model.sel(lm1, lm2, lm3, lm4, lm5)
+anova(lm1, lm2, lm3, lm4, lm5)
+
+lmfull <- lm(Behavior_Rate_log ~ Week + Strategy + Tide + Habitat, 
+               data = surface_pecking)
+
+lm_int1 <- lm(Behavior_Rate_log ~ Week * Strategy + Tide + Habitat, 
+            data = surface_pecking)
+
+lm_polint <- lm(Behavior_Rate_log ~ poly(Week, 2) * Strategy + Tide 
+                        + Habitat, 
+                    data = surface_pecking)
+
+lm_pol <- lm(Behavior_Rate_log ~ poly(Week, 2) + Strategy + Tide 
+                + Habitat, 
+            data = surface_pecking)
+
+lm_pol2 <- lm(Behavior_Rate_log ~ poly(Week,2) + Strategy + Habitat,
+              data = surface_pecking)
+
+lm_pol3 <- lm(Behavior_Rate_log ~ poly(Week,2) * Strategy + Habitat,
+              data = surface_pecking)
+
+lm_pol4 <- lm(Behavior_Rate_log ~ poly(Week,3) + Strategy + Habitat 
+              + Tide,
+              data = surface_pecking)
+
+lm_pol5 <- lm(Behavior_Rate_log ~ poly(Week,3) * Strategy + Habitat 
+              + Tide,
+              data = surface_pecking)
+
+lm_pol6 <- lm(Behavior_Rate_log ~ poly(Week,5) + Strategy + Habitat 
+              +  Tide,
+              data = surface_pecking)
+
+lm_pol7 <- lm(Behavior_Rate_log ~ poly(Week,5) * Strategy + Habitat +
+                Tide,
+              data = surface_pecking)
+
+lm_pollies <- lm(Behavior_Rate_log ~ poly(Week,2) + poly(Strategy,2) + Habitat
+                 + Tide ,
+                 data = surface_pecking)
+
+lm_pollies2 <- lm(Behavior_Rate_log ~ poly(Week,2) * poly(Strategy,2) + Habitat
+                 + Tide ,
+                 data = surface_pecking)
+
+lm_pol8 <- lm(Behavior_Rate_log ~ Week + poly(Strategy, 2) + Habitat 
+              + Tide,
+              data = surface_pecking)
+
+lm_pol9 <- lm(Behavior_Rate_log ~ Week * poly(Strategy, 2) + Habitat 
+              +  Tide,
+              data = surface_pecking)
+
+lmer_full <- lmer(Behavior_Rate_log ~ Week + Strategy + (1 | Three_letter_code) 
+                 + (1 | Tide) + (1 | Habitat), 
+                data = surface_pecking)
+
+lmer_reduced1 <- lmer(Behavior_Rate_log ~ Week + Strategy + 
+                  (1 | Three_letter_code) + (1 | Habitat),
+                data = surface_pecking)
+
+lmer_reduced2 <- lmer(Behavior_Rate_log ~ Week + Strategy  
                         + Habitat + Tide + (1|Three_letter_code), 
-                family = Gamma(link = "log"), 
-                data = subset(point_behaviors, Behavior == "Surface_pecking"),
-                        control = glmerControl(optimizer = "bobyqa",
-                                               optCtrl = list(maxfun = 2e5)))
+                data = surface_pecking)
 
-glmer_reduced3 <- glmer(Behavior_Rate ~ Week + Strategy 
+lmer_reduced3 <- lmer(Behavior_Rate_log ~ Week + Strategy 
                     + Habitat + (1|Three_letter_code),
-                    family = Gamma(link = "log"),
-                data = subset(point_behaviors, Behavior == "Surface_pecking"),
-                        control = glmerControl(optimizer = "bobyqa",
-                                               optCtrl = list(maxfun = 2e5)))
+                data = surface_pecking)
 
-glmer_reduced4 <- glmer(Behavior_Rate ~ Week + Strategy 
+lmer_reduced4 <- lmer(Behavior_Rate_log ~ Week + Strategy 
                         + (1|Three_letter_code), 
-                family = Gamma(link = "log"), 
-                data = subset(point_behaviors, Behavior == "Surface_pecking"),
-                        control = glmerControl(optimizer = "bobyqa",
-                                               optCtrl = list(maxfun = 2e5)))
+                data = surface_pecking)
 
-glmer_reduced5 <- glmer(Behavior_Rate ~ Week + Strategy + Tide + Habitat
+lmer_reduced5 <- lmer(Behavior_Rate_log ~ Week + Strategy + Tide + Habitat
                         + (1 | Three_letter_code),
-                        family = Gamma(link = "log"),
-                data = subset(point_behaviors, Behavior == "Surface_pecking"),
-                        control = glmerControl(optimizer = "bobyqa", 
-                                               optCtrl = list(maxfun = 2e5)))
+                data = surface_pecking)
 
-glmer_reduced6 <- glmer(Behavior_Rate ~ Week + Strategy + Tide + (1|Habitat)
+lmer_reduced6 <- lmer(Behavior_Rate_log ~ Week + Strategy + Tide + (1|Habitat)
                         + (1|Three_letter_code),
-                        family = Gamma(link = "log"),
-               data = subset(point_behaviors, Behavior == "Surface_pecking"),
-                        control = glmerControl(optimizer = "bobyqa", 
-                                               optCtrl = list(maxfun = 2e5)))
+               data = surface_pecking)
 
-glmer_int1 <- glmer(Behavior_Rate ~ Week * Strategy + Transect_ID 
+lmer_int1 <- lmer(Behavior_Rate_log ~ Week * Strategy
                         + Habitat + Tide + (1|Three_letter_code), 
-                        family = Gamma(link = "log"), 
-                data = subset(point_behaviors, Behavior == "Surface_pecking"),
-                        control = glmerControl(optimizer = "bobyqa",
-                                               optCtrl = list(maxfun = 2e5)))
+                data = surface_pecking)
 
-glmer_poly1 <- glmer(Behavior_Rate ~ poly(Week, 2) + Strategy + Transect_ID 
+lmer_poly1 <- lmer(Behavior_Rate_log ~ poly(Week, 3) + Strategy  
                      + Tide + Habitat + (1|Three_letter_code),
-                     family = Gamma(link = "log"),
-                data = subset(point_behaviors, Behavior == "Surface_pecking"),
-                control = glmerControl(optimizer = "bobyqa", 
-                                       optCtrl = list(maxfun = 2e5)))
-summary(glmer_poly1)
+                data = surface_pecking)
+summary(lmer_poly1)
 
-glmer_polyint <- glmer(
-  Behavior_Rate ~ poly(Week, 2) * Strategy + Tide + Habitat + (1|Three_letter_code),
-  family = Gamma(link = "log"),
-  data = subset(point_behaviors, Behavior == "Surface_pecking"),
-  control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
-)
-
-
-glmer_spline <- glmer(Behavior_Rate ~ ns(Week, df = 4) + Strategy
-                      + Transect_ID 
+lmer_poly2 <- lmer(Behavior_Rate_log ~ poly(Week, 3) + Strategy  
                      + Tide + Habitat + (1|Three_letter_code),
-                     family = Gamma(link = "log"),
-                data = subset(point_behaviors, Behavior == "Surface_pecking"),
-                control = glmerControl(optimizer = "bobyqa", 
-                                       optCtrl = list(maxfun = 2e5)))
+                     data = surface_pecking)
 
-glmer_int2 <- glmer(Behavior_Rate ~ Week + Strategy * Tide + Habitat + 
+lmer_polyint <- lmer(Behavior_Rate_log ~ poly(Week, 3) * Strategy + Tide 
+                     + Habitat + (1|Three_letter_code),
+                           data = surface_pecking)
+
+lmer_spline <- lmer(Behavior_Rate_log ~ ns(Week, df = 4) + Strategy
+                     + Tide + Habitat + (1|Three_letter_code),
+                data = surface_pecking)
+
+lmer_int2 <- lmer(Behavior_Rate_log ~ Week + Strategy * Tide + Habitat + 
                       (1|Three_letter_code),
-                    family = Gamma(link = "log"),
-                data = subset(point_behaviors, Behavior == "Surface_pecking"),
-                    control = glmerControl(optimizer = "bobyqa", 
-                                               optCtrl = list(maxfun = 2e5)))
+                data = surface_pecking)
 
-glmer_int3 <- glmer(Behavior_Rate ~ Week * Tide + Strategy + Habitat + 
+lmer_int3 <- lmer(Behavior_Rate_log ~ Week * Tide + Strategy + Habitat + 
                     (1|Three_letter_code),
-                    family = Gamma(link = "log"),
-                data = subset(point_behaviors, Behavior == "Surface_pecking"),
-                    control = glmerControl(optimizer = "bobyqa", 
-                                               optCtrl = list(maxfun = 2e5)))
+                data = surface_pecking)
 
-glmer_week_factor <- glmer(
-  Behavior_Rate ~ as.factor(Week) + Strategy + Tide + Habitat +
-    (1 | Three_letter_code),
-  family = Gamma(link = "log"),
-  data = subset(point_behaviors, Behavior == "Surface_pecking"),
-  control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
-)
-
-glmer_strategy_factor <- glmer(
-  Behavior_Rate ~ as.factor(Strategy) + Week + Tide + Habitat +
-    (1 | Three_letter_code),
-  family = Gamma(link = "log"),
-  data = subset(point_behaviors, Behavior == "Surface_pecking"),
-  control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
-)
-
-glmer_week_factor_int <- glmer(
-  Behavior_Rate ~ as.factor(Week) * Strategy + Tide + Habitat +
-    (1 | Three_letter_code),
-  family = Gamma(link = "log"),
-  data = subset(point_behaviors, Behavior == "Surface_pecking"),
-  control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
-)
-
-glmer_week_random <- glmer(
-  Behavior_Rate ~ as.factor(Week) + Strategy + (Week | Strategy) 
-  + Tide + Habitat +
-    (1 | Three_letter_code),
-  family = Gamma(link = "log"),
-  data = subset(point_behaviors, Behavior == "Surface_pecking"),
-  control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
-)
+lmer_int4 <- lmer(Behavior_Rate_log ~ poly(Week,3) + Strategy * Habitat 
+                    + (1|Three_letter_code), 
+                data = surface_pecking)
 
 
-pecking_model <- model.sel(glmfull, glm_int1, glmer_full, glmer_reduced1, glm1, glm2, glm3, glm4, glm5, glm6, glmer_reduced2, glmer_int1, glmer_reduced3, glmer_reduced4, glmer_poly1, glmer_spline, glmer_reduced5, glmer_reduced6, glmer_int2, glmer_int3, glmer_week_factor, glmer_week_factor_int, glmer_strategy_factor, glmer_polyint, glmer_week_random)
+pecking_model <- model.sel(lmfull, lm_int1, lmer_full, lmer_reduced1, lm1, lm2, lm3, lm4, lm5, lmer_reduced2, lmer_int1, lmer_reduced3, lmer_reduced4, lmer_poly1, lmer_spline, lmer_reduced5, lmer_reduced6, lmer_int2, lmer_int3,  lmer_polyint, lmer_int4, lmer_poly2, lm_pol, lm_polint, lm_pol3, lm_pol2, lm_pol4, lm_pol5, lm_pol6, lm_pol7, lm_pollies, lm_pollies2, lm_pol8, lm_pol9)
 pecking_model
 
-plot(residuals(glmer_week_factor))
+plot(residuals(lm_pol6))
 ## Which shows a not really a pattern which is good!
 
 
@@ -522,53 +443,44 @@ head(pecking_model_df)
 # Save to CSV
 write.csv(pecking_model_df, "pecking_model_selection_table.csv", row.names = FALSE)
 
-point_behaviors$Strategy <- factor(point_behaviors$Strategy)
-point_behaviors$Three_letter_code <- factor(point_behaviors$Three_letter_code)
-point_behaviors$Habitat <- factor(point_behaviors$Habitat)
-point_behaviors$Tide <- factor(point_behaviors$Tide)
-
-strategies <- levels(point_behaviors$Strategy)
-three_letter <- levels(point_behaviors$Three_letter_code)
-habitat <- levels(point_behaviors$Habitat)
-tide <- unique(point_behaviors$Tide)
-
-weeks_seq <- seq(min(point_behaviors$Week), max(point_behaviors$Week), length.out = 500)
-
-new_pecking_smooth <- expand.grid(
-  Week = 12:21,
-  Strategy = strategies,
-  Three_letter_code = three_letter,
-  Habitat = habitat,
-  Tide = tide,
-  stringsAsFactors = FALSE
+# Create new data for prediction (adjust as needed)
+newdata_peck <- expand.grid(
+  Week = seq(min(surface_pecking$Week), max(surface_pecking$Week), 
+             length.out = 100),
+  Strategy = unique(surface_pecking$Strategy),
+  Habitat = unique(surface_pecking$Habitat),
+  Transect_ID = unique(surface_pecking$Transect_ID),
+  Tide = unique(surface_pecking$Tide)
 )
 
-# Convert them back to factors using the original levels
-new_pecking_smooth$Strategy <- factor(new_pecking_smooth$Strategy, levels = strategies)
-new_pecking_smooth$Three_letter_code <- factor(new_pecking_smooth$Three_letter_code, levels = three_letter)
-new_pecking_smooth$Habitat <- factor(new_pecking_smooth$Habitat, levels = habitat)
-new_pecking_smooth$Tide <- factor(new_pecking_smooth$Tide, levels = tide)
+# Get predictions on  with confidence intervals
+pred_peck <- predict(lm_pol6, newdata_peck, interval = "confidence")
 
-new_pecking_smooth$predicted <- predict(glmer_week_factor,
-                                        newdata = new_pecking_smooth,
-                                        re.form = NA,
-                                        type = "response")
-new_pecking_smooth <- new_pecking_smooth |>
-  filter(!Week %in% c("12", "13", "14", "15"))
+newdata_peck$fit <- exp(pred_peck[,"fit"]) - 1
+newdata_peck$lwr <- exp(pred_peck[,"lwr"]) - 1
+newdata_peck$upr <- exp(pred_peck[,"upr"]) - 1
 
-new_pecking_smooth_avg <- new_pecking_smooth %>%
-  group_by(Week, Strategy) %>%
-  summarise(predicted = mean(predicted), .groups = "drop")
+pred_summary_peck <- newdata_peck |>
+  group_by(Week, Strategy) |>
+  summarise(
+    fit = mean(fit),
+    lwr = mean(lwr),
+    upr = mean(upr),
+    .groups = "drop")
 
-p6c <- p6b +
-  geom_line(
-    data = new_pecking_smooth_avg,
-    aes(x = as.factor(Week), y = predicted, color = Strategy, 
-        group = Strategy),
-    size = 1.0, inherit.aes = FALSE
-  ) +
-  
-  # Manual colors
+p_peck <- ggplot(surface_pecking, aes(x = Week, y = Behavior_Rate)) +
+  geom_boxplot(aes(group = interaction(Week, Strategy), fill = Strategy), 
+               position = position_dodge(width = 0.8)) +
+  geom_line(data = pred_summary_peck, aes(x = Week, y = fit, color = Strategy, 
+                                          group = Strategy), size = 1.0, inherit.aes = FALSE) +
+  #geom_ribbon(data = pred_summary_peck, aes(x = Week, ymin = lwr, ymax = upr, 
+  #                                    fill = Strategy), alpha = 0.2, 
+  #           inherit.aes = FALSE) +
+  geom_text(data = counts_point |> filter(Behavior == "Surface_pecking"), 
+            aes(x = Week, y = 0.9, label = n, group = Strategy, 
+             color = "black"),
+            position = position_dodge(width = 0.8), size = 6, 
+            inherit.aes = FALSE) +
   scale_color_manual(values = c(
     "overwinterer" = "#3487a8",
     "late_northward_migration" = "#2d8062",
@@ -580,67 +492,37 @@ p6c <- p6b +
     "early_northward_migration" = "#E777F2"
   )) +
   labs(
-    y = "Behaviour Rate",
+    y = "Behaviour Rate of Surface Pecking",
     x = "Week",
-    title = "Surface Pecking Rate per Strategy"
-  ) +
+    title = "Behaviour Rate per Strategy") +
   theme_minimal() +
   theme(
-    axis.text.x = element_text(size = 14),
-    axis.text.y = element_text(size = 14),
-    axis.title.x = element_text(size = 16),
-    axis.title.y = element_text(size = 16),
-    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
-    legend.position = "none"
-  ) +
-  facet_wrap( ~ Tide)
+    axis.text.x = element_text(size = 20),
+    axis.text.y = element_text(size = 20),
+    axis.title.x = element_text(size = 21),
+    axis.title.y = element_text(size = 21),
+    plot.title = element_text(size = 25, face = "bold", hjust = 0.5),
+    legend.position = "none")
+p_peck
 
-p6c
-
-# Pairwise comparison
-emm_pecking <- emm <- emmeans(glmer_week_factor, ~ Strategy | Week, type = "response")
-
-# Pairwise comparisons of Strategy within each Week × Habitat group
-pairwise_results_pecking <- pairs(emm_pecking, adjust = "tukey", type = "response")
-pairwise_summary_pecking <- summary(pairwise_results_pecking)
-
-# Print summary of comparisons
-print(pairwise_summary_pecking)
-
-# Extract p-values and contrast names
-pecking_pvals <- pairwise_summary_pecking$p.value
-names(pecking_pvals) <- gsub(" / ", " - ", pairwise_summary_pecking$contrast)
-
-# Remove duplicates (if any)
-pecking_pvals_unique <- pecking_pvals[!duplicated(names(pecking_pvals))]
-
+# Loadpackages
+library(emmeans)
 library(multcompView)
 
-# Generate compact letter display for grouping
-pecking_group_letters <- multcompLetters(pecking_pvals_unique)$Letters
+# Pairwise comparison
+emm_peck <- emm <- emmeans(lm_pol6, ~ Strategy | Week , type = "response")
 
-library(stringr)  # for str_trim()
+# Use cld to assign group letters
+cld_peck <- cld(emm_peck, adjust = "tukey", Letters = letters, 
+                type = "response")
 
-# Trim spaces from names
-pecking_clean_names <- str_trim(names(pecking_group_letters))
+# View result
+print(cld_peck)
 
-# Remove duplicates: keep first occurrence only
-pecking_unique_indices <- !duplicated(pecking_clean_names)
-pecking_clean_names_unique <- pecking_clean_names[unique_indices]
-pecking_group_letters_unique <- pecking_group_letters[unique_indices]
 
-# Rename with cleaned names
-names(pecking_group_letters_unique) <- pecking_clean_names_unique
+ggsave("peck_rate_per_strategy.png", plot = p_peck, width = 28, height = 10, dpi = 300)
 
-# Define factor level order (optional)
-levels_strat <- c("early_northward_migration", "late_northward_migration", "overwinterer")
-
-# Match levels to cleaned names
-pecking_group_letters_ordered <- group_letters_unique[match(levels_strat, pecking_clean_names_unique)]
-
-print(pecking_group_letters_ordered)
-
-ggsave("pecking_rate_per_strategy.png", plot = p6c, width = 28, height = 10, dpi = 300)
+#############################################################################
 
 p7a <- ggplot(point_behaviors |> filter(Behavior == "Turning_stuff"),
               aes(x = as.factor(Week), y = Behavior_Rate, 
@@ -666,7 +548,7 @@ p_point_behavior
 
 ggsave("rate_forage_stratgy.png", plot = p_point_behavior, width = 28, height = 10, dpi = 300)
 
-###########################################
+###############################################################################
 
 p8a <- ggplot(point_behaviors |> filter(Behavior == "Swallowing"),
               aes(x = as.factor(Week), y = Behavior_Rate, 
@@ -728,90 +610,87 @@ ggplot(success_swallowing, aes(x = Swallowing_success_duration)) +
     y = "Count"
   ) +
   theme_minimal()
+
+success_swallowing <- success_swallowing |> 
+  mutate(
+    Success_Rate_log = log(Swallowing_success_duration + 1),       
+    Success_Rate_sqrt = sqrt(Swallowing_success_duration)
+  )
+
+hist(success_swallowing$Success_Rate_log, main = "Log-transformed")
+hist(success_swallowing$Success_Rate_sqrt, main = "Square-root-transformed")
+
+model_logref <- lmer(Success_Rate_log~ Week * Strategy + (1 | Three_letter_code) + 
+                       (1 | Habitat) + (1 | Tide) + (1 | Transect_ID), 
+                     data = success_swallowing)
+
+model_squared <- lmer(Success_Rate_sqrt ~ Week * Strategy + (1 | Three_letter_code) 
+                      +  (1 | Habitat) + (1 | Tide) +
+                                     (1 | Transect_ID), data = success_swallowing)
+
+AIC(model_logref, model_squared)
+plot(model_logref)
+plot(model_squared)
+qqnorm(resid(model_logref)); qqline(resid(model_logref))
+qqnorm(resid(model_squared)); qqline(resid(model_squared))
          
 
-glm1 <- glm(Swallowing_success_duration ~ 1, 
-            family = Gamma(link = "log"),
+lm1 <- lm(Success_Rate_sqrt ~ 1, 
             data = success_swallowing)
 
-glm2 <- glm(Swallowing_success_duration ~ Week, 
-            family = Gamma(link = "log"),
+lm2 <- lm(Success_Rate_sqrt ~ Week, 
             data = success_swallowing)
 
-glm3 <- glm(Swallowing_success_duration ~ Strategy,
-            family = Gamma(link = "log"),
+lm3 <- lm(Success_Rate_sqrt ~ Strategy,
             data = success_swallowing)
 
-glm4 <- glm(Swallowing_success_duration ~ Tide,
-            family = Gamma(link = "log"),
+lm4 <- lm(Success_Rate_sqrt ~ Tide,
             data = success_swallowing)
 
-glm5 <- glm(Swallowing_success_duration ~ Habitat,
-            family = Gamma(link = "log"),
+lm5 <- lm(Success_Rate_sqrt ~ Habitat,
             data = success_swallowing)
 
-glm6 <- glm(Swallowing_success_duration ~ Transect_ID,
-            family = Gamma(link = "log"),
-            data = success_swallowing)
 
-model.sel(glm1, glm2, glm3, glm4, glm5, glm6)
+model.sel(lm1, lm2, lm3, lm4, lm5)
 
-glmfull <- glm(Swallowing_success_duration ~ Week + Strategy + Tide + Habitat 
-               + Transect_ID, 
-               family = Gamma(link = "log"),
+lmfull <- lm(Success_Rate_sqrt ~ Week + Strategy + Tide + Habitat,
                data = success_swallowing)
 
-summary(glmfull)
-
-glm_int1 <- glm(Swallowing_success_duration ~ Week * Strategy + Tide + Habitat 
-                + Transect_ID, 
-                family = Gamma(link = "log"),
+lm_int1 <- lm(Success_Rate_sqrt ~ Week * Strategy + Tide + Habitat, 
                 data = success_swallowing)
-summary(glm_int1)
 
-glmer_full <- glmer(Swallowing_success_duration ~ Week + Strategy +
-                      (1 | Three_letter_code) + (1 | Transect_ID) 
-                    + (1 | Tide) + (1 | Habitat), 
-                family = Gamma(link = "log"),
-                data = success_swallowing,
-                control = glmerControl(optimizer = "bobyqa", 
-                                       optCtrl = list(maxfun = 2e5)))
-summary(glmer_full)
+lm_polint <- lm(Success_Rate_sqrt ~ poly(Week, 2) * Strategy, 
+                    data = success_swallowing)
 
-glmer_reduced1 <- glmer(Swallowing_success_duration ~ Week + Strategy + 
-                        (1 | Three_letter_code) + (1 | Transect_ID), 
-                        family = Gamma(link = "log"),
-                        data = success_swallowing,
-                        control = glmerControl(optimizer = "bobyqa", 
-                                               optCtrl = list(maxfun = 2e5)))
-summary(glmer_reduced1)
 
-glmer_int1 <- glmer(Swallowing_success_duration ~ Week * Strategy + 
-                        (1 | Three_letter_code) + (1 | Transect_ID), 
-                        family = Gamma(link = "log"),
-                        data = success_swallowing,
-                        control = glmerControl(optimizer = "bobyqa", 
-                                               optCtrl = list(maxfun = 2e5)))
-summary(glmer_int1)
+lmer_full <- lmer(Success_Rate_sqrt ~ Week + Strategy +
+                      (1 | Three_letter_code)  
+                    + (1 | Tide) + (1 | Habitat),
+                data = success_swallowing)
 
-glmer_poly1 <- glmer(Swallowing_success_duration ~ poly(Week, 2) + Strategy
-                  + (1 | Three_letter_code) + (1 | Transect_ID) + (1 | Tide),
-  family = Gamma(link = "log"),
-  data = success_swallowing,
-  control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5)))
-summary(glmer_poly1)
+lmer_reduced1 <- lmer(Success_Rate_sqrt ~ Week + Strategy + 
+                        (1 | Three_letter_code), 
+                        data = success_swallowing)
 
-glmer_polyint <- glmer(Swallowing_success_duration ~ poly(Week, 2) * Strategy 
-                       + (1 | Three_letter_code) + (1 | Transect_ID),
-                       family = Gamma(link = "log"),
-                       data = success_swallowing,
-                       control = glmerControl(optimizer = "bobyqa", 
-                                              optCtrl = list(maxfun = 2e5)))
+lmer_int1 <- lmer(Success_Rate_sqrt ~ Week * Strategy + 
+                        (1 | Three_letter_code),
+                        data = success_swallowing)
 
-model.sel(glmfull, glm_int1, glmer_full, glmer_reduced1, glm1, glm2, glm3, glm4, glm5, glm6, glmer_int1, glmer_poly1, glmer_polyint)
+lmer_poly1 <- lmer(Success_Rate_sqrt ~ poly(Week, 2) + Strategy
+                  + (1 | Three_letter_code) + (1 | Tide),
+              data = success_swallowing)
 
-swallowing_model <- model.sel(glmfull, glm_int1, glmer_full, glmer_reduced1, glm1, glm2, glm3, glm4, glm5, glm6, glmer_int1, glmer_poly1, glmer_polyint)
+lmer_polyint <- lmer(Success_Rate_sqrt ~ poly(Week, 2) * Strategy 
+                       + (1 | Three_letter_code) ,
+                       data = success_swallowing)
+
+
+swallowing_model <- model.sel(lmfull, lm_int1, lmer_full, lmer_reduced1, lm1, lm2, lm3, lm4, lm5, lmer_int1, lmer_poly1, lmer_polyint, lm_polint)
 swallowing_model
+
+plot(residuals(lm_polint))
+## Which shows a not really a pattern which is good!
+
 
 swallowing_model_df <- as.data.frame(swallowing_model)
 swallowing_model_df$model <- rownames(swallowing_model_df)
@@ -821,53 +700,46 @@ head(swallowing_model_df)
 
 write.csv(swallowing_model_df, "swallowing_model_selection_table.csv", row.names = FALSE)
 
-success_swallowing$Strategy <- factor(success_swallowing$Strategy)
-success_swallowing$Three_letter_code <- factor(success_swallowing$Three_letter_code)
-success_swallowing$Transect_ID <- factor(success_swallowing$Transect_ID)
-success_swallowing$Tide <- factor(success_swallowing$Tide)
+# Create new data for prediction (adjust as needed)
+newdata_success <- expand.grid(
+  Week = seq(min(success_swallowing$Week), max(success_swallowing$Week), 
+             length.out = 100),
+  Strategy = unique(success_swallowing$Strategy))
 
-strategies <- levels(success_swallowing$Strategy)
-three_letter <- levels(success_swallowing$Three_letter_code)
-transect_ids <- levels(success_swallowing$Transect_ID)
-tide <- levels(success_swallowing$Tide)
-weeks_seq <- seq(min(success_swallowing$Week), max(success_swallowing$Week), length.out = 500)
+# Get predictions on  with confidence intervals
+pred_success <- predict(lm_polint, newdata_success, interval = "confidence")
 
-new_swallowing_smooth <- expand.grid(
-  Week = 12:21,
-  Strategy = strategies,
-  Three_letter_code = three_letter,
-  Transect_ID = transect_ids,
-  Tide = tide,
-  stringsAsFactors = FALSE
-)
-# Convert them back to factors using the original levels
-new_swallowing_smooth$Strategy <- factor(new_swallowing_smooth$Strategy, levels = strategies)
-new_swallowing_smooth$Three_letter_code <- factor(new_swallowing_smooth$Three_letter_code, levels = three_letter)
-new_swallowing_smooth$Transect_ID <- factor(new_swallowing_smooth$Transect_ID, levels = transect_ids)
-new_swallowing_smooth$Tide <- factor(new_swallowing_smooth$Tide, levels = tide)
-new_swallowing_smooth$predicted <- predict(glmer_poly1,
-                                  newdata = new_swallowing_smooth,
-                                  re.form = NA,
-                                  type = "response")
-new_swallowing_smooth <- new_swallowing_smooth |>
-  filter(!Week %in% c("12", "13", "14", "15"))
+newdata_success$fit <- (pred_success[, "fit"])^2
+newdata_success$lwr <- (pred_success[, "lwr"])^2
+newdata_success$upr <- (pred_success[, "upr"])^2
 
-p9b <- p9a +
-  geom_line(
-    data = new_swallowing_smooth,
-    aes(x = as.factor(Week), y = predicted, color = Strategy, 
-        group = Strategy),
-    size = 1.0, inherit.aes = FALSE
-  ) +
-  geom_text(
-    data = swallow_counts,
-    aes(x = as.factor(Week), y = 0.005, label = n, group = Strategy),
-    position = position_dodge2(width = 0.8, preserve = "single"),
-   # position = position_dodge(width = 1.0),
-    size =3,
-    inherit.aes = FALSE) +
-  
-  # Manual colors
+
+pred_summary_success <- newdata_success |>
+  group_by(Week, Strategy) |>
+  summarise(
+    fit = mean(fit),
+    lwr = mean(lwr),
+    upr = mean(upr),
+    .groups = "drop")
+
+counts_swallow <- success_swallowing |>
+  group_by(Week, Strategy) |>
+  summarise(n = n_distinct(Observation_id), .groups = "drop") |>
+  filter(!Week %in% c("9", "11","12", "13", "15"))
+
+p_success <- ggplot(success_swallowing, aes(x = Week, y = Swallowing_success_duration)) +
+  geom_boxplot(aes(group = interaction(Week, Strategy), fill = Strategy), 
+               position = position_dodge(width = 0.8)) +
+  geom_line(data = pred_summary_success, aes(x = Week, y = fit, color = Strategy, 
+                                          group = Strategy), size = 1.0, inherit.aes = FALSE) +
+  geom_ribbon(data = pred_summary_success, aes(x = Week, ymin = lwr, ymax = upr, 
+                                     fill = Strategy), alpha = 0.2, 
+            inherit.aes = FALSE) +
+  geom_text(data = counts_swallow, 
+            aes(x = Week, y = 0.0052, label = n, group = Strategy, 
+                color = "black"),
+            position = position_dodge(width = 0.8), size = 6, 
+            inherit.aes = FALSE) +
   scale_color_manual(values = c(
     "overwinterer" = "#3487a8",
     "late_northward_migration" = "#2d8062",
@@ -879,56 +751,34 @@ p9b <- p9a +
     "early_northward_migration" = "#E777F2"
   )) +
   labs(
-    y = "Behaviour Rate",
+    y = "Success Rate of Swallowing",
     x = "Week",
-    title = "Swallowing Succes Rate per Strategy"
-  ) +
+    title = "Success Rate per Strategy") +
   theme_minimal() +
   theme(
-    axis.text.x = element_text(size = 14),
-    axis.text.y = element_text(size = 14),
-    axis.title.x = element_text(size = 16),
-    axis.title.y = element_text(size = 16),
-    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
-    legend.position = "none"
-  )
-p9b
+    axis.text.x = element_text(size = 20),
+    axis.text.y = element_text(size = 20),
+    axis.title.x = element_text(size = 21),
+    axis.title.y = element_text(size = 21),
+    plot.title = element_text(size = 25, face = "bold", hjust = 0.5),
+    legend.position = "none")
+p_success
 
-
-
-swallow_counts <- success_swallowing |>
-  group_by(Week, Strategy) |>
-  summarise(n = n_distinct(Observation_id), .groups = "drop") |>
-  filter(!Week %in% c("9", "11","12", "13", "15"))
+# Loadpackages
+library(emmeans)
+library(multcompView)
 
 # Pairwise comparison
-emm_swallowing <- emm <- emmeans(glmer_poly1, ~ Strategy | Week, type = "response")
-# Pairwise comparisons of Strategy within each Week × Habitat group
-pairwise_results_swallowing <- pairs(emm_swallowing, adjust = "tukey", type = "response")
-pairwise_summary_swallowing <- summary(pairwise_results_swallowing)
-# Print summary of comparisons
-print(pairwise_summary_swallowing)
-# Extract p-values and contrast names
-swallowing_pvals <- pairwise_summary_swallowing$p.value
-names(swallowing_pvals) <- gsub(" / ", " - ", pairwise_summary_swallowing$contrast)
-# Remove duplicates (if any)
-swallowing_pvals_unique <- swallowing_pvals[!duplicated(names(swallowing_pvals))]
-library(multcompView)
-# Generate compact letter display for grouping
-swallowing_group_letters <- multcompLetters(swallowing_pvals_unique)$Letters
-library(stringr)  # for str_trim()
-# Trim spaces from names
-swallowing_clean_names <- str_trim(names(swallowing_group_letters))
-# Remove duplicates: keep first occurrence only
-swallowing_unique_indices <- !duplicated(swallowing_clean_names)
-swallowing_clean_names_unique <- swallowing_clean_names[swallowing_unique_indices]
-swallowing_group_letters_unique <- swallowing_group_letters[swallowing_unique_indices]
-# Rename with cleaned names
-names(swallowing_group_letters_unique) <- swallowing_clean_names_unique
-# Define factor level order (optional)
-levels_strat <- c("early_northward_migration", "late_northward_migration", "overwinterer")
-# Match levels to cleaned names
-swallowing_group_letters_ordered <- swallowing_group_letters_unique[match(levels_strat, swallowing_clean_names_unique)]
-print(swallowing_group_letters_ordered)
+emm_success <- emm <- emmeans(lm_polint, ~ Strategy | Week , type = "response")
 
-ggsave("swallowing_rate_per_strategy.png", plot = p9b, width = 28, height = 10, dpi = 300)
+# Use cld to assign group letters
+cld_success <- cld(emm_success, adjust = "tukey", Letters = letters, 
+                type = "response")
+
+# View result
+print(cld_success)
+
+
+ggsave("success_rate_per_strategy.png", plot = p_success, width = 28, height = 10, dpi = 300)
+
+

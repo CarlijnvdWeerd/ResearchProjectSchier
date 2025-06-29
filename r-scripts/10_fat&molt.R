@@ -116,20 +116,20 @@ ggplot(molt_data, aes(x = Date, y = Molting_score, color = Strategy)) +
   theme(legend.position = "bottom")
 
 p_molt <- ggplot(molt_data, aes(x = Date, y = Molting_score, color = Strategy, group = Three_letter_code)) +
-  geom_line(alpha = 0.3) +  # individual bird lines, faint
-  geom_point(alpha = 0.3) +
-  geom_smooth(aes(group = Strategy), se = FALSE, method = "loess", size = 1.2) +
+  geom_line(alpha = 0.5) +  # individual bird lines, faint
+  geom_point(alpha = 0.5) +
+  geom_smooth(aes(group = Strategy), se = FALSE, method = "loess", size = 1.5) +
   scale_color_manual(values = c("#E777F2", "#4DD2A4", "#4DC8F9")) +
-  labs(title = "Molting Scores of Birds with Smoothed Strategy Trends",
+  labs(title = "Moulting Scores of Birds with Smoothed Strategy Trends",
        x = "Date",
-       y = "Molting Score") +
+       y = "Moulting Score") +
   theme_minimal() +
   theme(
-    axis.text.x = element_text(size = 19),
-    axis.text.y = element_text(size = 19),
-    axis.title.x = element_text(size = 21),
-    axis.title.y = element_text(size = 21),
-    plot.title = element_text(size = 25, face = "bold", hjust = 0.5),
+    axis.text.x = element_text(size = 21),
+    axis.text.y = element_text(size = 21),
+    axis.title.x = element_text(size = 23),
+    axis.title.y = element_text(size = 23),
+    plot.title = element_text(size = 26, face = "bold", hjust = 0.5),
     legend.position = "none")
 p_molt
 
@@ -138,20 +138,20 @@ ggsave("moult_rate.png", plot = p_molt, width = 28, height = 15, dpi = 300)
 ###########################################################################
 ## Need to make a new dataframe and not use video_data, because removed the birds that did not moult
 p_fat<-ggplot(video_data, aes(x = Date, y = Fat_score, color = Strategy, group = Three_letter_code)) +
-  geom_line(alpha = 0.3) +  # individual bird lines, faint
-  geom_point(alpha = 0.3) +
-  geom_smooth(aes(group = Strategy), se = FALSE, method = "loess", size = 1.2) +
+  geom_line(alpha = 0.5) +  # individual bird lines, faint
+  geom_point(alpha = 0.5) +
+  geom_smooth(aes(group = Strategy), se = FALSE, method = "loess", size = 1.5) +
   scale_color_manual(values = c("#E777F2", "#4DD2A4", "#4DC8F9")) +
   labs(title = "Fat Scores of Birds with Smoothed Strategy Trends",
        x = "Date",
        y = "Fat Score") +
   theme_minimal()  +
   theme(
-    axis.text.x = element_text(size = 19),
-    axis.text.y = element_text(size = 19),
-    axis.title.x = element_text(size = 21),
-    axis.title.y = element_text(size = 21),
-    plot.title = element_text(size = 25, face = "bold", hjust = 0.5),
+    axis.text.x = element_text(size = 21),
+    axis.text.y = element_text(size = 21),
+    axis.title.x = element_text(size = 23),
+    axis.title.y = element_text(size = 23),
+    plot.title = element_text(size = 26, face = "bold", hjust = 0.5),
     legend.position = "none")
 p_fat
 
@@ -204,45 +204,66 @@ ggplot(slopes_with_strategy, aes(x = Slope)) +
   geom_histogram(bins = 30, fill = "#69b3a2", color = "black") +
   theme_minimal()
 
-glm1 <- glm(Slope ~ 1,
-            data = slopes_with_strategy,
-            family = Gamma(link = "log"))
+moult <- slopes_with_strategy |> 
+    mutate(
+    Slope_log = log(Slope + 1),      
+    Slope_sqrt = sqrt(Slope)
+  )
 
-glm2 <- glm(Slope ~ Strategy,
-            data = slopes_with_strategy,
-            family = Gamma(link = "log"))
-summary(glm2)
+hist(moult$Slope_log, main = "Log-transformed")
+hist(moult$Slope_sqrt, main = "Square-root-transformed")
 
-model.sel(glm1, glm2)
-anova(glm1, glm2, test = "Chisq")
+model_logref <- lm(Slope_log ~ Last_Date * Strategy, data = moult)
 
-glm3 <- glm(Slope ~ First_Date,
-            data = slopes_with_strategy,
-            family = Gamma(link = "log"))
+model_squared <- lm(Slope_sqrt ~ Last_Date * Strategy, data = moult)
 
-glm4 <- glm(Slope ~ First_Date + Strategy,
-            data = slopes_with_strategy,
-            family = Gamma(link = "log"))
+AIC(model_logref, model_squared)
+plot(model_logref)
+plot(model_squared)
+qqnorm(resid(model_logref)); qqline(resid(model_logref))
+qqnorm(resid(model_squared)); qqline(resid(model_squared))
 
-model.sel(glm1, glm2, glm3, glm4)
+shapiro.test(resid(model_logref))
+shapiro.test(resid(model_squared))
 
-glm5 <- glm(Slope ~ First_Date * Strategy,
-            data = slopes_with_strategy,
-            family = Gamma(link = "log"))
+lm1 <- lm(Slope_log ~ 1,
+            data = moult)
 
-glm6 <- glm(Slope ~ Last_Date,
-            data = slopes_with_strategy,
-            family = Gamma(link = "log"))
+lm2 <- lm(Slope_log ~ Strategy,
+            data = moult)
+summary(lm2)
 
-glm7 <- glm(Slope ~ First_Date + Last_Date + Strategy,
-            data = slopes_with_strategy,
-            family = Gamma(link = "log"))
-summary(glm7)
+model.sel(lm1, lm2)
+anova(lm1, lm2, test = "Chisq")
 
-model.sel(glm1, glm2, glm3, glm4, glm5, glm6, glm7)
-anova(glm3, glm4, glm5, glm6, glm7, test = "Chisq")
+lm3 <- lm(Slope_log ~ First_Date,
+            data = moult)
 
-emm_molt <- emmeans(glm7, ~ Strategy, type = "response")
+lm4 <- lm(Slope_log ~ First_Date + Strategy,
+            data = moult)
+
+model.sel(lm1, lm2, lm3, lm4)
+
+lm5 <- lm(Slope_log ~ First_Date * Strategy,
+            data = moult)
+
+lm6 <- lm(Slope_log ~ Last_Date,
+            data = moult)
+
+lm7 <- lm(Slope_log ~ First_Date + Last_Date + Strategy,
+            data = moult)
+summary(lm7)
+
+lm8 <- lm(Slope_log ~ Last_Date * Strategy,
+            data = moult)
+
+moult.model <- model.sel(lm1, lm2, lm3, lm4, lm5, lm6, lm7, lm8)
+anova(lm3, lm4, lm5, lm6, lm7, lm8, test = "Chisq")
+moult.model
+
+plot(lm7)
+
+emm_molt <- emmeans(lm7, ~ Strategy, type = "response")
 pairs(emm_molt)
 library(multcomp)
 
@@ -288,47 +309,56 @@ ggsave("fat_slope.png", plot = p_fat_slopes, width = 28, height = 15, dpi = 300)
 
 ### removing outlier (in two days fatting up from 2.5 to 5, not possible)
 fatslopes_with_strategy <- fatslopes_with_strategy |>
-  filter(!Three_letter_code == "KTN")
+  filter(!Three_letter_code %in% c("KTN", "MTJ", "LPT", "NEL", "JHY", "JJV", "KKT", "LEA", "PJC", "PKN"))
 
 ggplot(fatslopes_with_strategy, aes(x = Slope)) +
   geom_histogram(bins = 30, fill = "#69b3a2", color = "black") +
   theme_minimal()
 
-mean(fatslopes_with_strategy$Slope)
-var(fatslopes_with_strategy$Slope)
+fatslopes_with_strategy$slope_log_reflected <- log(max(fatslopes_with_strategy$Slope, na.rm = TRUE) + 1 - fatslopes_with_strategy$Slope)
+fatslopes_with_strategy$slope_squared <- fatslopes_with_strategy$Slope^2
 
-glm1 <- glm(Slope ~ 1,
-              family = inverse.gaussian(link = "log"),
+model_logref <- lm(slope_log_reflected ~ Last_Date * Strategy, data = fatslopes_with_strategy)
+
+model_squared <- lm(slope_squared ~ Last_Date * Strategy , data = fatslopes_with_strategy)
+
+ggplot(fatslopes_with_strategy, aes(x = slope_log_reflected)) +
+  geom_histogram(bins = 30, fill = "#69b3a2", color = "black") +
+  theme_minimal()
+
+AIC(model_logref, model_squared)
+plot(model_logref)
+plot(model_squared)
+qqnorm(resid(model_logref)); qqline(resid(model_logref))
+
+shapiro.test(resid(model_logref))
+
+lm1 <- lm(slope_log_reflected ~ 1,
               data = fatslopes_with_strategy)
 
-glm2 <- glm(Slope ~ Strategy,
-              family = inverse.gaussian(link = "log"),
+lm2 <- lm(slope_log_reflected ~ Strategy,
               data = fatslopes_with_strategy)
-summary(glm2)
+summary(lm2)
 
-glm3 <- glm(Slope ~ First_Date * Strategy,
-              family = inverse.gaussian(link = "log"),
+lm3 <- lm(slope_log_reflected ~ First_Date * Strategy,
               data = fatslopes_with_strategy)
-summary(glm3)
+summary(lm3)
 
-glm4 <- glm(Slope ~ First_Date + Strategy,
-              family = inverse.gaussian(link = "log"),
+lm4 <- lm(slope_log_reflected ~ First_Date + Strategy,
               data = fatslopes_with_strategy)
-summary(glm4)
+summary(lm4)
 
-glm5  <- glm(Slope ~ Last_Date + Strategy,
-              family = inverse.gaussian(link = "log"),
+lm5  <- lm(slope_log_reflected ~ Last_Date + Strategy,
               data = fatslopes_with_strategy)
 
-glm6 <- glm(Slope ~ First_Date + Last_Date + Strategy,
-              family = inverse.gaussian(link = "log"),
+lm6 <- lm(slope_log_reflected ~ First_Date + Last_Date + Strategy,
               data = fatslopes_with_strategy)
-summary(glm6)
+summary(lm6)
 
-model.sel(glm1, glm2, glm3, glm4, glm5, glm6)
-anova(glm1, glm2, glm3, glm4, glm5, glm6, test = "Chisq")
+model.sel(lm1, lm2, lm3, lm4, lm5, lm6)
+anova(lm1, lm2, lm3, lm4, lm5, lm6, test = "Chisq")
 
-emm_fat <- emmeans(glm4, ~ Strategy, type = "response")
+emm_fat <- emmeans(lm2, ~ Strategy, type = "response")
 pairs(emm_fat)
 library(multcomp)
 
