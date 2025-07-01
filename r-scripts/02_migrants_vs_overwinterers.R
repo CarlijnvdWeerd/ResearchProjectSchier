@@ -311,7 +311,8 @@ timeline_data <- timeline_data |>
   group_by(bird_code, Strategy) |>
   filter(observation_date >= as.Date("2024-12-01") & observation_date <= as.Date("2025-06-01")) |>
   filter(n_distinct(observation_date) > 1) |>
-  ungroup()
+  ungroup()|>
+  filter(!(bird_code %in% c("Of-JJJ/R", "Of-KHE/R", "Of-KHK/R", "Of-KHU/R", "Of-KLP/R", "Of-KTE/R", "Of-KTN/R", "Of-KTT/R", "Of-LCV/R", "Of-MXL/R", "Of-NEL/R", "Of-NPP/R", "Of-PJU/R")))
 
 time_plot <- ggplot(timeline_data, aes(x=observation_date, y=bird_code, color = Strategy))+
   geom_line() +
@@ -319,6 +320,10 @@ time_plot <- ggplot(timeline_data, aes(x=observation_date, y=bird_code, color = 
 time_plot
 
 ggsave("timeline.png", plot = time_plot, width = 18, height = 15, dpi = 300)
+
+# Check whether birds observed for at least 3 weeks
+check_data <- timeline_data |>
+ dplyr::select(bird_code, Strategy, observation_date)
 
 timeline_data <- timeline_data |>
   group_by(bird_code) |>
@@ -358,8 +363,25 @@ ggsave("last_obs.png", plot = timebox, width = 18, height = 15, dpi = 300)
 
 timeline_data$day_number <- as.numeric(timeline_data$last_observation_date - as.Date("2025-01-01"))
 
+ggplot(timeline_data, aes(x = day_number)) +
+  geom_histogram(bins = 30, fill = "#69b3a2", color = "black") +
+  theme_minimal() +
+  labs(title = "Distribution of Last Observation Dates",
+       x = "Days since January 1, 2025",
+       y = "Count")
+
 # Reflect data: higher numbers become smaller, and vice versa
 timeline_data$reflected_day <- max(timeline_data$day_number) + 1 - timeline_data$day_number
+
+ggplot(timeline_data, aes(x=Strategy, y=reflected_day, fill = Strategy)) +
+  geom_boxplot() +
+  geom_point(aes(color = Strategy), position = position_jitterdodge(jitter.width = 0.5), size = 2, alpha = 0.7) +
+  scale_fill_manual(values = c("#E777F2", "#4DD2A4", "#4DC8F9")) +
+  scale_color_manual(values = c("#904a96", "#2d8062", "#3487a8")) +
+  labs(title = "Last Observation Date per Bird Code and Strategy",
+       x = "Last Observation Date",
+       y = "Strategy") +
+  theme_minimal()
 
 ggplot(timeline_data, aes(x = reflected_day)) +
   geom_histogram(bins = 30, fill = "#69b3a2", color = "black") +
@@ -380,3 +402,28 @@ summary(glm2)
 
 model.sel(glm1, glm2)
 anova(glm1, glm2, test = "Chisq")
+
+emm <- emmeans(glm2, ~ Strategy)
+cld <- cld(emm, adjust = "tukey", Letters = letters, type = "response")
+print(cld)
+
+cld$Strategy <- as.factor(cld$Strategy)  # Match plot's x-axis
+
+label_positions <- timeline_data %>%
+  group_by(Strategy) %>%
+  summarise(y_pos = max(last_observation_date, na.rm = TRUE) + 10)  # Adjust +6 as needed
+
+# Join with letters
+cld_plot <- left_join(cld, label_positions, by = c("Strategy"))
+
+#cld_plot_beak <- cld_plot_beak |>
+#  filter(!(Strategy == "not_seen_in_2025" & Year == "2025"))
+
+timebox2 <- timebox +
+  geom_text(data = cld_plot,
+            aes(x = Strategy, y = y_pos, label = .group, group = Strategy),
+            position = position_dodge(width = 0.8), size = 8)
+
+timebox2
+
+ggsave("last_obs_with_letters.png", plot = timebox2, width = 18, height = 15, dpi = 300)
