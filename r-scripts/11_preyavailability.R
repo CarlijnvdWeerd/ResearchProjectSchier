@@ -65,7 +65,9 @@ birds_prey_data <- birds_prey_data |>
 # I want to make a ggplot with on the x-axis the date, on the right y-axis the count of birds, and on the left y-axis the count of benthos species.
 birds_prey <- ggplot(birds_prey_data, aes(x = Month)) +
   geom_line(aes(y = count.x, color = Strategy), size = 1) +  # Bird counts on left axis
-  geom_line(aes(y = count.y / 13.64, color = Species_ID), linetype = "dashed") +  # Scaled benthos
+  geom_bar(aes(y = count.y / 13.64, fill = Species_ID), stat = "identity", 
+           position = "dodge", 
+           alpha = 0.2) +  # Scaled benthos
   scale_y_continuous(
     name = "Count of Observed Birds",  # Left axis (0 to 110)
     limits = c(0, 110),
@@ -82,7 +84,9 @@ birds_prey <- ggplot(birds_prey_data, aes(x = Month)) +
     values = c(
       "overwinterer" = "#4DC8F9",
       "early_northward_migration" = "#E777F2",
-      "late_northward_migration" = "#4DD2A4",
+      "late_northward_migration" = "#4DD2A4")) +
+    scale_fill_manual(
+      values = c(
       "cor vol" = "#FF5733",
       "oli" = "#FFC300",
       "per ulv" = "#C70039"
@@ -99,4 +103,62 @@ ggplot(birds_prey_data, aes(x = count.y)) +
   geom_histogram(bins = 30, fill = "#69b3a2", color = "black") +
   theme_minimal()
 
+#################################################################################3
+
+# run script 07 Boris forage for dataframe of complete_dataset
+prey_data <- complete_dataset |>
+  dplyr::select(Week, Strategy, Habitat, Three_letter_code, Comment) |>
+  group_by(Three_letter_code) |>
+  distinct()
+
+prey_data <- prey_data |>
+mutate(Comment = str_to_lower(Comment),         # Make lowercase
+       Comment = str_remove_all(Comment, "\\?")) |>
+  filter(Comment %in% c( "worm", "wadkreeftje", "Wadkreeftje", "worm?", "wadkreeftje?", "nonnetje", "Worm", "Klein ding", "Wadkreeftje of ander klein ding geen worm")) #|>
+  group_by(Strategy) |>
+  summarise(count = n(), .groups = "drop")
+# early n=37
+# late  n=72
+# overwinter n=64
+  
+  bird_counts <- c(
+  "overwinterer" = 64,
+  "early_northward_migration" = 37,
+  "late_northward_migration" = 72)
+
+prey_counts <- prey_data %>%
+  group_by(Comment, Strategy) %>%
+  summarise(count = n(), .groups = "drop") |>
+  mutate(Count_per_bird = case_when(
+    Strategy == "overwinterer" ~ count / bird_counts["overwinterer"],
+    Strategy == "early_northward_migration" ~ count / bird_counts["early_northward_migration"],
+    Strategy == "late_northward_migration" ~ count / bird_counts["late_northward_migration"],
+    TRUE ~ NA_real_)) 
+
+ggplot(prey_counts, aes(x=Strategy, y=count, fill = Comment)) +
+  geom_bar(stat = "identity", width = 1)
+
+p_preycount <- ggplot(prey_counts, aes(x=Strategy, y=Count_per_bird, 
+                                       fill = Comment)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Prey Selection by Strategy",
+       x = "Strategy",
+       y = "Count of Prey",
+       fill = "Prey Type") +
+  theme_minimal() +
+  scale_fill_manual(values = c("worm" = "#FFC300", "wadkreeftje" = "#FF5733", "nonnetje" = "#900C3F", "Klein ding" = "#900C3F"),
+  labels = c("wadkreeftje" = "Corophium", "nonnetje" = "Macoma", "worm"="Polychaetes")) +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(hjust = 0.5, size = 25, face = "bold"),
+    axis.text.x = element_text(size = 18),
+    axis.text.y = element_text(size = 20),
+    axis.title.x = element_text(size = 23),
+    axis.title.y = element_text(size = 23),
+    legend.text = element_text(size = 20),
+  )
+p_preycount  
+
+# Save the plot
+ggsave("prey_availability_by_strategy.png", plot = p_preycount, width = 12, height = 6)
 

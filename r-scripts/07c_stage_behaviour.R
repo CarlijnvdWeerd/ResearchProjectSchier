@@ -188,9 +188,9 @@ p_walk<- ggplot(walking, aes(x = Week, y = Duration_Rate)) +
     "early_northward_migration" = "#E777F2"
   )) +
   labs(
-    y = "Duration Rate of Walking",
+    y = "Relative time spend walking (s)",
     x = "Week",
-    title = "Duration Rate per Strategy") +
+    title = "Walking behaviour per Strategy") +
   theme_minimal() +
   theme(
     axis.text.x = element_text(size = 20),
@@ -452,9 +452,9 @@ p_alert <- ggplot(alert, aes(x = Week, y = Duration_Rate)) +
     "early_northward_migration" = "#E777F2"
   )) +
   labs(
-    y = "Duration Rate of Alert",
+    y = "Relative time spend being alert (s)",
     x = "Week",
-    title = "Duration Rate per Strategy") +
+    title = "Alertness per Strategy") +
   theme_minimal() +
   theme(
     axis.text.x = element_text(size = 20),
@@ -671,9 +671,9 @@ p_handling <- ggplot(handling, aes(x = Week, y = Duration_Rate)) +
     "early_northward_migration" = "#E777F2"
   )) +
   labs(
-    y = "Duration Rate of Handling prey",
+    y = "Relative time spend handling prey (s)",
     x = "Week",
-    title = "Duration Rate per Strategy") +
+    title = "Handling prey behaviour per Strategy") +
   theme_minimal() +
   theme(
     axis.text.x = element_text(size = 20),

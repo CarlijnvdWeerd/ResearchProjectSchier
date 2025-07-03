@@ -149,6 +149,32 @@ counts_point <- point_behaviors |>
   summarise(n = n_distinct(Observation_id), .groups = "drop") |>
   filter(!Week %in% c("9", "11", "15"))
 
+## Stacked bar graph 
+p_stacked <- ggplot(point_behaviors, aes(x = as.factor(Week), y = Behavior_Count, fill = Behavior)) +
+  geom_bar(stat = "identity") +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Point Behaviour by Strategy",
+    x = "Week",
+    y = "Count")  + 
+  facet_wrap(~ Strategy)
+p_stacked
+
+behaviors <- behaviors |>
+  filter(!Week %in% c("9", "11", "12", "13", "15"))
+
+p_all <- ggplot(behaviors, aes(x = as.factor(Week), y = Duration, fill = Behavior)) +
+  geom_bar(stat = "identity") +
+  theme_minimal(base_size = 20) +
+  labs(
+    title = "Behaviour by Strategy",
+    x = "Week",
+    y = "Relative Time Spend") +
+  facet_wrap(~ Strategy)
+p_all
+
+ggsave("behaviors_by_strategy.png", plot = p_all, width = 12, height = 6)
+
 p5a <- ggplot(point_behaviors |> filter(Behavior == "Probing"),
              aes(x = as.factor(Week), y = Behavior_Rate, 
                  fill = Strategy)) +

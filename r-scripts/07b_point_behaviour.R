@@ -25,7 +25,7 @@ p5a <- ggplot(point_behaviors |> filter(Behavior == "Probing"),
   labs(
     title = "Probing by Strategy",
     x = "Week",
-    y = "Duration Rate")
+    y = "Relative time spend Probing")
 p5a
 
 counts_point <- counts_point |>
@@ -138,12 +138,12 @@ lmer_polyint <- lmer(Behavior_Rate ~ poly(Week, 2) * Strategy +
                      data = subset(point_behaviors, Behavior == "Probing"))
 
 
-probing_model <- model.sel(lmfull, lmreduced1, lmreduced2, lmreduced3, lm_int1, lm_int2, lm_int3, lm1, lm2, lm3, lm4, lm5, lmerfull, lmerreduced1, lmerreduced2, lmer_int1, lmer_int2, lmer_spline, lmer_poly2, lmer_polyint, lm_pol2, lm_pol1)
+probing_model <- model.sel(lmfull, lmreduced1, lmreduced2, lmreduced3, lm_int1, lm_int2, lm_int3, lm1, lm2, lm3, lm4, lm5, lmerfull, lmerreduced1, lmerreduced2, lmer_int1, lmer_int2, lmer_spline, lmer_poly2, lmer_polyint, lm_pol1)
 probing_model
-## Choose lm_pol2
+## Choose lm_pol1
 
 
-plot(residuals(lm_pol2))
+plot(residuals(lm_pol1))
 ## Which shows a not really a pattern which is good!
 
 
@@ -166,7 +166,7 @@ newdata_prob <- expand.grid(
 )
 
 # Get predictions on  with confidence intervals
-pred_prob <- predict(lm_pol2, newdata_prob, interval = "confidence")
+pred_prob <- predict(lm_pol1, newdata_prob, interval = "confidence")
 
 newdata_prob$fit <- pred_prob[,"fit"]
 newdata_prob$lwr <- pred_prob[,"lwr"]
@@ -202,9 +202,9 @@ p_prob <- ggplot(point_behaviors |> filter(Behavior == "Probing"), aes(x = Week,
     "early_northward_migration" = "#E777F2"
   )) +
   labs(
-    y = "Behaviour Rate of Probing",
+    y = "Relative time spend probing (s)",
     x = "Week",
-    title = "Behaviour Rate per Strategy") +
+    title = "Probing behaviour per Strategy") +
   theme_minimal() +
   theme(
     axis.text.x = element_text(size = 20),
@@ -220,7 +220,7 @@ library(emmeans)
 library(multcompView)
 
 # Pairwise comparison
-emm_prob <- emm <- emmeans(lm_pol2, ~ Strategy | Week , type = "response")
+emm_prob <- emm <- emmeans(lm_pol1, ~ Strategy | Week , type = "response")
 
 # Use cld to assign group letters
 cld_prob <- cld(emm_prob, adjust = "tukey", Letters = letters, 
@@ -428,10 +428,10 @@ lmer_int4 <- lmer(Behavior_Rate_log ~ poly(Week,3) + Strategy * Habitat
                 data = surface_pecking)
 
 
-pecking_model <- model.sel(lmfull, lm_int1, lmer_full, lmer_reduced1, lm1, lm2, lm3, lm4, lm5, lmer_reduced2, lmer_int1, lmer_reduced3, lmer_reduced4, lmer_poly1, lmer_spline, lmer_reduced5, lmer_reduced6, lmer_int2, lmer_int3,  lmer_polyint, lmer_int4, lmer_poly2, lm_pol, lm_polint, lm_pol3, lm_pol2, lm_pol4, lm_pol5, lm_pol6, lm_pol7, lm_pollies, lm_pollies2, lm_pol8, lm_pol9)
+pecking_model <- model.sel(lmfull, lm_int1, lmer_full, lmer_reduced1, lm1, lm2, lm3, lm4, lm5, lmer_reduced2, lmer_int1, lmer_reduced3, lmer_reduced4, lmer_poly1, lmer_spline, lmer_reduced5, lmer_reduced6, lmer_int2, lmer_int3,  lmer_polyint, lmer_int4, lmer_poly2, lm_pol, lm_polint, lm_pol3, lm_pol2, lm_pol4, lm_pol5,  lm_pollies, lm_pollies2, lm_pol9)
 pecking_model
 
-plot(residuals(lm_pol6))
+plot(residuals(lmfull))
 ## Which shows a not really a pattern which is good!
 
 
@@ -454,7 +454,7 @@ newdata_peck <- expand.grid(
 )
 
 # Get predictions on  with confidence intervals
-pred_peck <- predict(lm_pol6, newdata_peck, interval = "confidence")
+pred_peck <- predict(lmfull, newdata_peck, interval = "confidence")
 
 newdata_peck$fit <- exp(pred_peck[,"fit"]) - 1
 newdata_peck$lwr <- exp(pred_peck[,"lwr"]) - 1
@@ -492,9 +492,9 @@ p_peck <- ggplot(surface_pecking, aes(x = Week, y = Behavior_Rate)) +
     "early_northward_migration" = "#E777F2"
   )) +
   labs(
-    y = "Behaviour Rate of Surface Pecking",
+    y = "Relative time spend surface pecking (s)",
     x = "Week",
-    title = "Behaviour Rate per Strategy") +
+    title = "Surface pecking behaviour per Strategy") +
   theme_minimal() +
   theme(
     axis.text.x = element_text(size = 20),
@@ -510,7 +510,7 @@ library(emmeans)
 library(multcompView)
 
 # Pairwise comparison
-emm_peck <- emm <- emmeans(lm_pol6, ~ Strategy | Week , type = "response")
+emm_peck <- emm <- emmeans(lmfull, ~ Strategy | Week , type = "response")
 
 # Use cld to assign group letters
 cld_peck <- cld(emm_peck, adjust = "tukey", Letters = letters, 

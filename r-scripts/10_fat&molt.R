@@ -163,6 +163,8 @@ p_fat
 real_last_day <- molt_data |>
   filter(!(Observation_id %in% c("KXM_14.05", "JYL_08.05", "MCH_21.05", "KPM.15.05", "KPM.20.05", "PMP.20.05", "JHM.21.05", "KMC_13.05", "KMC_14.05", "KMC.15.05", "KMC_20.05", "JAE_08.05", "JAE.14.05", "JAE_20.05", "	
 JLU.25.04", "KCY.21.05", "NKE.01.05", "NKE.14.05", "PHT_20.05", "JLH_20.05", "KVV_20.05", "NTV_14.05" )))
+real_last_day <- real_last_day |>
+  filter(!Observation_id %in% c("CCU_27.03", "KNP.17.04", "KNP.19.03", "KPM.27.02", "LYK.26.03", "NTV.24.04", "NTV.10.04", "NTV.09.04"))
 
 # Calculate per-bird slope (molting change per day)
 molting_slopes <- real_last_day %>%
@@ -186,8 +188,8 @@ p_moultslopes <- ggplot(slopes_with_strategy, aes(x = Strategy, y= Slope, fill =
   geom_boxplot() +
   scale_fill_manual(values = c("#E777F2", "#4DD2A4", "#4DC8F9")) +
   labs(title = "Distribution of Moulting Slopes by Strategy",
-       x = "Slope (Moulting Change per Day)",
-       y = "Density") +
+       x = "Strategy",
+       y = "Slope (Moulting Change per Day") +
   theme_minimal() +
   theme(
     axis.text.x = element_text(size = 21),
@@ -200,7 +202,7 @@ p_moultslopes
 
 ggsave("moult_slope.png", plot = p_moultslopes, width = 28, height = 15, dpi = 300)
 
-ggplot(slopes_with_strategy, aes(x = Slope)) +
+ggplot(molting_slopes, aes(x = Slope)) +
   geom_histogram(bins = 30, fill = "#69b3a2", color = "black") +
   theme_minimal()
 
@@ -226,50 +228,62 @@ qqnorm(resid(model_squared)); qqline(resid(model_squared))
 shapiro.test(resid(model_logref))
 shapiro.test(resid(model_squared))
 
-lm1 <- lm(Slope_log ~ 1,
+lm1 <- lm(Slope_sqrt ~ 1,
             data = moult)
 
-lm2 <- lm(Slope_log ~ Strategy,
+lm2 <- lm(Slope_sqrt ~ Strategy,
             data = moult)
 summary(lm2)
 
 model.sel(lm1, lm2)
 anova(lm1, lm2, test = "Chisq")
 
-lm3 <- lm(Slope_log ~ First_Date,
+lm3 <- lm(Slope_sqrt ~ First_Date,
             data = moult)
 
-lm4 <- lm(Slope_log ~ First_Date + Strategy,
+lm4 <- lm(Slope_sqrt ~ First_Date + Strategy,
             data = moult)
 
 model.sel(lm1, lm2, lm3, lm4)
 
-lm5 <- lm(Slope_log ~ First_Date * Strategy,
+lm5 <- lm(Slope_sqrt ~ First_Date * Strategy,
             data = moult)
 
-lm6 <- lm(Slope_log ~ Last_Date,
+lm6 <- lm(Slope_sqrt ~ Last_Date,
             data = moult)
 
-lm7 <- lm(Slope_log ~ First_Date + Last_Date + Strategy,
+lm7 <- lm(Slope_sqrt ~ First_Date + Last_Date + Strategy,
             data = moult)
 summary(lm7)
 
-lm8 <- lm(Slope_log ~ Last_Date * Strategy,
+lm8 <- lm(Slope_sqrt ~ Last_Date * Strategy ,
             data = moult)
 
-moult.model <- model.sel(lm1, lm2, lm3, lm4, lm5, lm6, lm7, lm8)
+moult.model <- model.sel(lm1, lm2, lm3, lm4, lm5, lm6, lm8)
 anova(lm3, lm4, lm5, lm6, lm7, lm8, test = "Chisq")
 moult.model
 
-plot(lm7)
+plot(lm8)
 
-emm_molt <- emmeans(lm7, ~ Strategy, type = "response")
+install.packages("car") 
+library(car)
+
+vif(lm7)
+## nothing above 2
+vif(lm8, type = "predictor")
+# but this one is probably better
+
+emm_molt <- emmeans(lm8, ~ Strategy, type = "response")
 pairs(emm_molt)
 library(multcomp)
 
 cld(emm_molt, Letters = letters, adjust = "tukey")
 
 ############################################################################
+video_data <- video_data |>
+  filter(!Observation_id %in% c("	
+JLU.10.04", "	KPM.27.02", "KPM_27.03"))
+
 # Calculate per-bird slope (molting change per day)
 fatting_slopes <- video_data %>%
   group_by(Three_letter_code) %>%

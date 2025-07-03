@@ -28,18 +28,19 @@ ring_data <- ring_data %>%
   )
 
 ring_data <- ring_data |>
-  filter(Year %in% c("2023", "2024", "2025"))
+  filter(Year %in% c("2023", "2024", "2025")) |>
+  filter(!(Strategy == "not_seen_in_2025"))
 
 ring_counts <- ring_data |>
-  group_by(Year, Strategy) |>
+  group_by(Strategy) |>
   summarise(n = n_distinct(Ringnumber), .groups = "drop") |>
-  filter(Year %in% c("2023", "2024", "2025"))
+  filter(!(Strategy == "not_seen_in_2025"))
 
 p1a <- ggplot(ring_data,
-              aes(x = as.factor(Year), y = Wing, 
+              aes(x = as.factor(Strategy), y = Wing, 
                   fill = Strategy)) +
   geom_boxplot() +
-  scale_fill_manual(values = c("#E777F2", "#4DD2A4","#BFC04D", "#4DC8F9")) +
+  scale_fill_manual(values = c("#E777F2", "#4DD2A4", "#4DC8F9")) +
   theme_minimal(base_size = 14) +
   labs(
     title = "Wing lenght per Strategy",
@@ -54,7 +55,7 @@ p1a <- ggplot(ring_data,
     legend.position = "none",)
 p1a      
 
-p1b <- p1a + geom_text(data = ring_counts, aes(x = as.factor(Year), 
+p1b <- p1a + geom_text(data = ring_counts, aes(x = as.factor(Strategy), 
                                                                                  y = 172, 
                                                                                  label = paste0("", n)),
                        position = position_dodge(width = 0.8), size = 8)
@@ -83,10 +84,10 @@ library(lubridate)
 
 
 p2a <- ggplot(ring_data,
-              aes(x = as.factor(Year), y = Weight, 
+              aes(x = as.factor(Strategy), y = Weight, 
                   fill = Strategy)) +
   geom_boxplot() +
-  scale_fill_manual(values = c("#E777F2", "#4DD2A4","#BFC04D", "#4DC8F9")) +
+  scale_fill_manual(values = c("#E777F2", "#4DD2A4", "#4DC8F9")) +
   theme_minimal(base_size = 14) +
   labs(
     title = "Weight per Strategy",
@@ -101,8 +102,8 @@ p2a <- ggplot(ring_data,
     legend.position = "none")
 p2a      
 
-p2b <- p2a + geom_text(data = ring_counts, aes(x = as.factor(Year), 
-                                               y = 172, 
+p2b <- p2a + geom_text(data = ring_counts, aes(x = as.factor(Strategy), 
+                                               y = 180, 
                                                label = paste0("", n)),
                        position = position_dodge(width = 0.8), size = 8)
 p2b
@@ -110,10 +111,10 @@ p2b
 
       
 p3a <- ggplot(ring_data,
-              aes(x = as.factor(Year), y = Beak, 
+              aes(x = as.factor(Strategy), y = Beak, 
                   fill = Strategy)) +
   geom_boxplot() +
-  scale_fill_manual(values = c("#E777F2", "#4DD2A4","#BFC04D", "#4DC8F9")) +
+  scale_fill_manual(values = c("#E777F2", "#4DD2A4", "#4DC8F9")) +
   theme_minimal(base_size = 14) +
   labs(
     title = "Beak length per Strategy",
@@ -128,17 +129,17 @@ p3a <- ggplot(ring_data,
     legend.position = "none")
 p3a  
 
-p3b <- p3a + geom_text(data = ring_counts, aes(x = as.factor(Year), 
+p3b <- p3a + geom_text(data = ring_counts, aes(x = as.factor(Strategy), 
                                                y = 29, 
                                                label = paste0("", n)),
                        position = position_dodge(width = 0.8), size = 8)
 p3b
 
 p4a <- ggplot(ring_data,
-              aes(x = as.factor(Year), y = Tarsus, 
+              aes(x = as.factor(Strategy), y = Tarsus, 
                   fill = Strategy)) +
   geom_boxplot() +
-  scale_fill_manual(values = c("#E777F2", "#4DD2A4","#BFC04D", "#4DC8F9")) +
+  scale_fill_manual(values = c("#E777F2", "#4DD2A4", "#4DC8F9")) +
   theme_minimal(base_size = 14) +
   labs(
     title = "Tarsus length per Strategy",
@@ -153,7 +154,7 @@ p4a <- ggplot(ring_data,
     legend.position = "none")
 p4a  
 
-p4b <- p4a + geom_text(data = ring_counts, aes(x = as.factor(Year), 
+p4b <- p4a + geom_text(data = ring_counts, aes(x = as.factor(Strategy), 
                                                y = 30, 
                                                label = paste0("", n)),
                        position = position_dodge(width = 0.8), size = 8)
@@ -188,44 +189,48 @@ shapiro.test(ring_data$wing_trans)
 lm1 <- lm(wing_trans ~ 1,
             data = ring_data)
 
-lm2 <- lm(wing_trans ~ Year,
-            data = ring_data)
+
+#lm2 <- lm(wing_trans ~ Year,
+#            data = ring_data)
 
 lm3 <- lm(wing_trans ~ Strategy,
             data = ring_data)
 
-lm4 <- lm(wing_trans ~ Year + Strategy,
-            data = ring_data)
+#lm4 <- lm(wing_trans ~ Year + Strategy,
+#            data = ring_data)
 
-lm5 <- lm(wing_trans ~ Year * Strategy,
-            data = ring_data)
+#lm5 <- lm(wing_trans ~ Year * Strategy,
+#            data = ring_data)
 
 anova(lm1, lm2, lm3, lm4, lm5)  
-model.sel(lm1, lm2, lm3, lm4, lm5)
+model.sel(lm1, lm3)
 
-#library(emmeans)
+summary(lm1)
+summary(lm3)
+
+library(emmeans)
 #Compute emmeans
-#emm_wing <- emmeans(lm5, ~ Strategy | Year, type = "response")
+emm_wing <- emmeans(lm1, ~ 1 , type = "response")
 
 library(multcomp)
 
 # Use cld to assign group letters
-#cld_wing <- cld(emm_wing, adjust = "tukey", Letters = letters, type = "response")
+cld_wing <- cld(emm_wing, adjust = "tukey", Letters = letters, type = "response")
 
 # View result
-#print(cld_wing)
+print(cld_wing)
 
 #cld_wing$Year <- as.factor(cld_wing$Year)  # Match plot's x-axis
 
 # Example: pick a position slightly above max wing values
 library(dplyr)
 
-#wing_label_positions <- ring_data %>%
-#  group_by(Year, Strategy) %>%
-#  summarise(y_pos = max(Wing, na.rm = TRUE) + 2)  # Adjust +2 as needed
+wing_label_positions <- ring_data %>%
+  group_by(Strategy) %>%
+  summarise(y_pos = max(Wing, na.rm = TRUE) + 2)  # Adjust +2 as needed
 
 # Join with letters
-#cld_plot_wing <- left_join(cld_wing, wing_label_positions, by = c("Year", "Strategy"))
+cld_plot_wing <- left_join(cld_wing, wing_label_positions, by = c("Year", "Strategy"))
 
 p1c <- p1b +
   geom_text(data = cld_plot_wing,
@@ -246,26 +251,26 @@ glm1 <- glm(Weight ~ 1,
            family = gaussian(),
           data = ring_data)
 
-glm2 <- glm(Weight ~ Year,
-            family = gaussian(),
-          data = ring_data)
+#glm2 <- glm(Weight ~ Year,
+#            family = gaussian(),
+#          data = ring_data)
 
 glm3 <- glm(Weight ~ Strategy,
             family = gaussian(),
           data = ring_data)
 
-glm4 <- glm(Weight ~ Year + Strategy,
-          family = gaussian(),
-          data = ring_data)
+#glm4 <- glm(Weight ~ Year + Strategy,
+#          family = gaussian(),
+#          data = ring_data)
 
-glm5 <- glm(Weight ~ Year * Strategy,
-            family = gaussian(),
-          data = ring_data)
-model.sel(glm1, glm2, glm3, glm4, glm5)
+#glm5 <- glm(Weight ~ Year * Strategy,
+#            family = gaussian(),
+#          data = ring_data)
+model.sel(glm1, glm3)
 
 
 # Extract residuals
-res <- residuals(lm4)
+res <- residuals(glm3)
 
 # Q-Q plot
 qqnorm(res)
@@ -280,7 +285,7 @@ shapiro.test(res)
 library(emmeans)
 
 # Compute emmeans
-emm_weight <- emmeans(glm4, ~ Strategy | Year, type = "response")
+emm_weight <- emmeans(glm3, ~ Strategy, type = "response")
 
 library(multcomp)
 
@@ -290,24 +295,25 @@ cld_weight <- cld(emm_weight, adjust = "tukey", Letters = letters, type = "respo
 # View result
 print(cld_weight)
 
-cld_weight$Year <- as.factor(cld_weight$Year)  # Match plot's x-axis
+#cld_weight$Year <- as.factor(cld_weight$Year)  # Match plot's x-axis
 
 # Example: pick a position slightly above max wing values
 library(dplyr)
 
 weight_label_positions <- ring_data %>%
-  group_by(Year, Strategy) %>%
+  group_by(Strategy) %>%
   summarise(y_pos = max(Weight, na.rm = TRUE) + 6)  # Adjust +6 as needed
 
 # Join with letters
-cld_plot_weight <- left_join(cld_weight, weight_label_positions, by = c("Year", "Strategy"))
+cld_plot_weight <- left_join(cld_weight, weight_label_positions, by = "Strategy")
 
-cld_plot_weight <- cld_plot_weight |>
-  filter(!(Strategy == "not_seen_in_2025" & Year == "2025"))
+#cld_plot_weight <- cld_plot_weight |>
+#  filter(!(Strategy == "not_seen_in_2025" & Year == "2025"))
 
 p2c <- p2b +
   geom_text(data = cld_plot_weight,
-            aes(x = Year, y = y_pos, label = .group, group = Strategy),
+            aes(x = as.factor(Strategy), y = y_pos, label = .group, 
+                group = Strategy),
             position = position_dodge(width = 0.8), size = 8)
 
 p2c
@@ -325,38 +331,38 @@ glm1 <- glm(Beak ~ 1,
             family = gaussian(),
             data = ring_data)
 
-glm2 <- glm(Beak ~ Year,
-            family = gaussian(),
-            data = ring_data)
+#glm2 <- glm(Beak ~ Year,
+#            family = gaussian(),
+#            data = ring_data)
 
 glm3 <- glm(Beak ~ Strategy,
             family = gaussian(),
             data = ring_data)
 
-glm4 <- glm(Beak ~ Year + Strategy,
-            family = gaussian(),
-            data = ring_data)
+#glm4 <- glm(Beak ~ Year + Strategy,
+#            family = gaussian(),
+#            data = ring_data)
 
-glm5 <- glm(Beak ~ Year * Strategy,
-            family = gaussian(),
-            data = ring_data)
+#glm5 <- glm(Beak ~ Year * Strategy,
+#            family = gaussian(),
+#            data = ring_data)
 
-model.sel(glm1, glm2, glm3, glm4, glm5)
+model.sel(glm1, glm3)
 # Extract residuals
-res_glm5 <- residuals(glm5)
+res_glm3 <- residuals(glm3)
 # Q-Q plot
-qqnorm(res_glm5)
-qqline(res_glm5, col = "red", lwd = 2)
+qqnorm(res_glm3)
+qqline(res_glm3, col = "red", lwd = 2)
 # Histogram
-hist(res_glm5, breaks = 30, main = "Residual Histogram", xlab = "Residuals")
+hist(res_glm3, breaks = 30, main = "Residual Histogram", xlab = "Residuals")
 
 # Shapiro-Wilk test (for small samples)
-shapiro.test(res_glm5)
+shapiro.test(res_glm3)
 
 library(emmeans)
 
 # Compute emmeans
-emm_beak <- emmeans(glm5, ~ Strategy | Year, type = "response")
+emm_beak <- emmeans(glm3, ~ Strategy, type = "response")
 
 library(multcomp)
 
@@ -366,21 +372,21 @@ cld_beak <- cld(emm_beak, adjust = "tukey", Letters = letters, type = "response"
 # View result
 print(cld_beak)
 
-cld_beak$Year <- as.factor(cld_beak$Year)  # Match plot's x-axis
+#cld_beak$Year <- as.factor(cld_beak$Year)  # Match plot's x-axis
 
 beak_label_positions <- ring_data %>%
-  group_by(Year, Strategy) %>%
-  summarise(y_pos = max(Beak, na.rm = TRUE) + 0.5)  # Adjust +6 as needed
+  group_by(Strategy) %>%
+  summarise(y_pos = max(Beak, na.rm = TRUE) + 1)  # Adjust +6 as needed
 
 # Join with letters
-cld_plot_beak <- left_join(cld_beak, beak_label_positions, by = c("Year", "Strategy"))
+cld_plot_beak <- left_join(cld_beak, beak_label_positions, by = "Strategy")
 
 #cld_plot_beak <- cld_plot_beak |>
 #  filter(!(Strategy == "not_seen_in_2025" & Year == "2025"))
 
 p3c <- p3b +
   geom_text(data = cld_plot_beak,
-            aes(x = Year, y = y_pos, label = .group, group = Strategy),
+            aes(x = as.factor(Strategy), y = y_pos, label = .group, group = Strategy),
             position = position_dodge(width = 0.8), size = 8)
 
 p3c
@@ -400,23 +406,23 @@ glm1 <- glm(Tarsus
             family = gaussian(),
             data = ring_data)
 
-glm2 <- glm(Tarsus ~ Year,
-            family = gaussian(),
-            data = ring_data)
+#glm2 <- glm(Tarsus ~ Year,
+#            family = gaussian(),
+#            data = ring_data)
 
 glm3 <- glm(Tarsus ~ Strategy,
             family = gaussian(),
             data = ring_data)
 
-glm4 <- glm(Tarsus ~ Year + Strategy,
-            family = gaussian(),
-            data = ring_data)
+#glm4 <- glm(Tarsus ~ Year + Strategy,
+#            family = gaussian(),
+#            data = ring_data)
 
-glm5 <- glm(Tarsus ~ Year * Strategy,
-            family = gaussian(),
-            data = ring_data)
+#glm5 <- glm(Tarsus ~ Year * Strategy,
+#            family = gaussian(),
+#            data = ring_data)
 
-model.sel(glm1, glm2, glm3, glm4, glm5)
+model.sel(glm1, glm3)
 # Extract residuals
 res_glm1 <- residuals(glm1)
 # Q-Q plot

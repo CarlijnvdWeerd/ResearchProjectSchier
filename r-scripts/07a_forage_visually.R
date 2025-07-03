@@ -223,9 +223,9 @@ p_visual_forage <- ggplot(visual, aes(x = Week, y = visually_foraging)) +
     "early_northward_migration" = "#E777F2"
   )) +
   labs(
-    y = "Duration of visually foraging (s)",
+    y = "Relative time spend visually foraging (s)",
     x = "Week",
-    title = "Visually foraging by Strategy across Habitats") +
+    title = "Visually foraging behaviour per Strategy") +
   theme_minimal() +
   theme(
     axis.text.x = element_text(size = 20),

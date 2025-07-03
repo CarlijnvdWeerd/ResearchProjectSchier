@@ -415,6 +415,7 @@ label_positions <- timeline_data %>%
 
 # Join with letters
 cld_plot <- left_join(cld, label_positions, by = c("Strategy"))
+cld_plot 
 
 #cld_plot_beak <- cld_plot_beak |>
 #  filter(!(Strategy == "not_seen_in_2025" & Year == "2025"))
