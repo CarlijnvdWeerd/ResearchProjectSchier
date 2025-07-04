@@ -239,7 +239,7 @@ p_point <- ggplot(point_behaviors, aes(x = as.factor(Week), y = Behavior_Rate, f
   geom_bar(stat = "identity", position = "fill") +
   scale_fill_manual(values = c(
                       "Probing" = "#B2DF89",
-                      "Surface_pecking" = "#EF457F",
+                      "Surface_pecking" = "#6ABEEB",
                       "Swallowing" = "#386BAF"
                     ),
                     labels = c(

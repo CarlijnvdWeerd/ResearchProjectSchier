@@ -404,6 +404,7 @@ model.sel(glm1, glm2)
 anova(glm1, glm2, test = "Chisq")
 
 emm <- emmeans(glm2, ~ Strategy)
+print(emm)
 cld <- cld(emm, adjust = "tukey", Letters = letters, type = "response")
 print(cld)
 
@@ -428,3 +429,24 @@ timebox2 <- timebox +
 timebox2
 
 ggsave("last_obs_with_letters.png", plot = timebox2, width = 18, height = 15, dpi = 300)
+
+# I want to calculate the mean of the last observation date per strategy
+mean_dates <- timeline_data %>%
+  group_by(Strategy) %>%
+  summarise(mean_date = mean(last_observation_date, na.rm = TRUE)) %>%
+  ungroup()
+
+# I want to calculate the SE of the last observation date per strategy
+se_dates <- timeline_data %>%
+  group_by(Strategy) %>%
+  summarise(se_date = sd(last_observation_date, na.rm = TRUE) / sqrt(n())) %>%
+  ungroup()
+
+# I want to calculate the Cl with upper and lower bound of the last observation date per strategy
+cl_dates <- timeline_data %>%
+  group_by(Strategy) %>%
+  summarise(
+    lwr = mean(last_observation_date, na.rm = TRUE) - qt(0.975, df = n() - 1) * (sd(last_observation_date, na.rm = TRUE) / sqrt(n())),
+    upr = mean(last_observation_date, na.rm = TRUE) + qt(0.975, df = n() - 1) * (sd(last_observation_date, na.rm = TRUE) / sqrt(n()))
+  ) %>%
+  ungroup()

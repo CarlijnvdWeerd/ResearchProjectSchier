@@ -186,8 +186,9 @@ glm15 <- glm(vf_log_reflected ~ Habitat * Strategy + Week,
              family = gaussian(),
               data = visual)
 
+
 model.sel(glm9, glm13, glm15)
-model_selection <-model.sel(glmer1, glmer2, glmer3, glmer4, glmer5, glmer6, glmer7, glm1, glm2, glm3, glm4, glm5, glm6, glm7, glm8, glm9, glm10, glm11, glm12, glm13, glm14, lm15)
+model_selection <-model.sel(glmer1, glmer2, glmer3, glmer4, glmer5, glmer6, glmer7, glm1, glm2, glm3, glm4, glm5, glm6, glm7, glm8, glm9, glm10, glm11, glm12, glm13, glm15)
 model_selection
 
 # Load necessary package
