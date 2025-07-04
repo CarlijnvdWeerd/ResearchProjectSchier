@@ -127,6 +127,30 @@ print(behaviors)
 
 behaviors <- behaviors |>
   distinct()
+
+# Fill in the "gaps" 
+behaviors <- behaviors |>
+  group_by(Three_letter_code, Observation_id) |>
+  mutate(total_duration = sum(Duration, na.rm = TRUE)) |>
+  mutate(total_duration = ifelse(is.na(total_duration), 0, 
+                                 total_duration), gap_time = Media.duration..s. - total_duration) |>
+  rename(visually_foraging = gap_time) 
+behaviors <- behaviors |>
+  mutate(visually_foraging = visually_foraging / Media.duration..s.)
+
+all_behaviors <- stage_behavior %>% 
+  bind_rows(
+    stage_behavior %>% 
+      dplyr::select(Observation_id, Behavior, Duration, Week,    
+                    Three_letter_code, Tide, Habitat, Social_behavior,
+                    Strategy, Transect_ID, Date.x, 
+                     Duration_Rate),
+    visual_behavior %>%
+      dplyr::select(Observation_id, Behavior, Week, 
+                    Three_letter_code, Tide, Habitat,Strategy, 
+                    Transect_ID, Date.x, 
+                    Duration_Rate))
+
 #######################################################################
 # Look at surface_pecking per week per strategy in behavior dataframe
 
@@ -173,7 +197,69 @@ p_all <- ggplot(behaviors, aes(x = as.factor(Week), y = Duration, fill = Behavio
   facet_wrap(~ Strategy)
 p_all
 
-ggsave("behaviors_by_strategy.png", plot = p_all, width = 12, height = 6)
+
+all_behaviors$Behavior <- factor(all_behaviors$Behavior, levels = c( "Alert", "Digging", "Routing", "Walking", "Handling_prey", "visually_foraging"))
+
+
+p_stage <- ggplot(all_behaviors, aes(x= as.factor(Week), y= Duration_Rate, fill = Behavior)) +
+  geom_bar(stat = "identity", position = "fill")  +
+  scale_fill_manual(
+    values = c(
+      "Handling_prey" = "#409E77",
+      "visually_foraging" = "#E8448A",
+      "Alert" = "#756FB3",
+      "Digging" = "#D9602C",
+      "Routing" = "#66A61E",
+      "Walking" = "#E6AC34"
+    ),
+    labels = c(
+      "Handling_prey" = "Handling Prey",
+      "visually_foraging" = "Visually Foraging",
+      "Alert" = "Alert",
+      "Digging" = "Digging",
+      "Routing" = "Routing",
+      "Walking" = "Walking"
+    )) +
+  theme_minimal(base_size = 20) +
+  labs(
+    title = "Behaviour by Strategy",
+    x = "Week",
+    y = "Relative Time Spend") +
+  facet_wrap(~ Strategy)
+p_stage
+
+ggsave("behaviors_by_strategy_stage.png", plot = p_stage, width = 16, height = 10)
+
+point_behaviors$Behavior <- factor(point_behaviors$Behavior, levels = c( "Turning_stuff", "Swallowing", "Surface_pecking", "Probing"))
+point_behaviors <- point_behaviors |>
+  filter(!Behavior == "Turning_stuff") |>
+  filter(!Week %in% c("9", "11", "12", "13", "15"))
+
+p_point <- ggplot(point_behaviors, aes(x = as.factor(Week), y = Behavior_Rate, fill = Behavior)) +
+  geom_bar(stat = "identity", position = "fill") +
+  scale_fill_manual(values = c(
+                      "Probing" = "#B2DF89",
+                      "Surface_pecking" = "#EF457F",
+                      "Swallowing" = "#386BAF"
+                    ),
+                    labels = c(
+                      "Probing" = "Probing",
+                      "Surface_pecking" = "Surface Pecking",
+                      "Swallowing" = "Swallowing")) +
+  theme_minimal(base_size = 20) +
+  labs(
+    title = "Behaviour by Strategy",
+    x = "Week",
+    y = "Relative Time Spend") +
+  facet_wrap(~ Strategy)
+p_point
+
+ggsave("behaviors_by_strategy_point.png", plot = p_point, width = 16, height = 10)
+
+p_all <- p_stage + p_point + plot_layout(ncol = 1)
+p_all
+
+ggsave("behaviors_by_strategy.png", plot = p_all, width = 16, height = 10)
 
 p5a <- ggplot(point_behaviors |> filter(Behavior == "Probing"),
              aes(x = as.factor(Week), y = Behavior_Rate, 
@@ -211,13 +297,7 @@ p7a <- ggplot(point_behaviors |> filter(Behavior == "Turning_stuff"),
     y = "Duration Rate")
 p7a
 
-# Fill in the "gaps" 
-behaviors <- behaviors |>
-  group_by(Three_letter_code, Observation_id) |>
-  mutate(total_duration = sum(Duration, na.rm = TRUE)) |>
-  mutate(total_duration = ifelse(is.na(total_duration), 0, 
-                                 total_duration), gap_time = Media.duration..s. - total_duration) |>
-  rename(visually_foraging = gap_time) 
+
 
 #################################################################################
 # The same analysis but than for the stage event behaviors
