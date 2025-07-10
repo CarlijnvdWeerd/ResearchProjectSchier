@@ -22,6 +22,7 @@ video_data <- video_data |>
                              "CCU") ~ "early_northward_migration",
     TRUE ~ "late_northward_migration"))
 
+
 winter_data <- video_data |>
   filter(Strategy == "overwinterer") |>
   group_by(Three_letter_code) |>
@@ -115,6 +116,11 @@ ggplot(molt_data, aes(x = Date, y = Molting_score, color = Strategy)) +
   theme_minimal() +
   theme(legend.position = "bottom")
 
+slopes_with_strategy <- slopes_with_strategy |>
+  group_by(Strategy) |>
+  mutate(Molting_score =  2)
+
+
 p_molt <- ggplot(molt_data, aes(x = Date, y = Molting_score, color = Strategy, group = Three_letter_code)) +
   geom_line(alpha = 0.5) +  # individual bird lines, faint
   geom_point(alpha = 0.5) +
@@ -130,7 +136,10 @@ p_molt <- ggplot(molt_data, aes(x = Date, y = Molting_score, color = Strategy, g
     axis.title.x = element_text(size = 23),
     axis.title.y = element_text(size = 23),
     plot.title = element_text(size = 26, face = "bold", hjust = 0.5),
-    legend.position = "none")
+    legend.position = "none") +
+  geom_boxplot(data = slopes_with_strategy,
+               mapping = aes(x = First_Date, y = Molting_score, fill = Strategy),
+               alpha = 0.2, outlier.shape = NA, width = 0.5)
 p_molt
 
 ggsave("moult_rate.png", plot = p_molt, width = 28, height = 15, dpi = 300)
@@ -378,5 +387,15 @@ library(multcomp)
 
 cld(emm_fat, Letters = letters, adjust = "tukey")
 
+video_data |>
+  group_by(Strategy) 
+# I want to know how many of every strategy are present in the df video_data
+video_data |>
+  group_by(Strategy) |>
+  summarise(Count = n_distinct(Three_letter_code)) |>
+  arrange(desc(Count))
 
-
+filtered_data |>
+  group_by(category) |>
+  summarise(Count = n_distinct(bird_code)) |>
+  arrange(desc(Count))

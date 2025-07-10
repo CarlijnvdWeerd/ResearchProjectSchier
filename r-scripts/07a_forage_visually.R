@@ -276,6 +276,7 @@ library(multcompView)
 
 # Pairwise comparison
 emm_visual <- emm <- emmeans(glm13, ~ Strategy | Week , type = "response")
+print(emm_visual)
 
 # Use cld to assign group letters
 cld_visual <- cld(emm_visual, adjust = "tukey", Letters = letters, 

@@ -132,6 +132,7 @@ all_birds
 
 ggsave("all_birds.png", plot = all_birds, width = 18, height = 30, dpi = 300)
 
+
 library(dplyr)
 
 # Filter observations
