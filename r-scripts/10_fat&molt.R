@@ -389,7 +389,10 @@ lm6 <- lm(slope_log_reflected ~ First_Date + Last_Date + Strategy,
               data = fatslopes_with_strategy)
 summary(lm6)
 
-model.sel(lm1, lm2, lm3, lm4, lm5, lm6)
+lm7 <- lm(slope_log_reflected ~ Last_Date * Strategy,
+              data = fatslopes_with_strategy)
+
+model.sel(lm1, lm2, lm3, lm4, lm5, lm6, lm7)
 anova(lm1, lm2, lm3, lm4, lm5, lm6, test = "Chisq")
 
 emm_fat <- emmeans(lm2, ~ Strategy, type = "response")

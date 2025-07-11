@@ -335,7 +335,7 @@ glm1 <- glm(Beak ~ 1,
 #            family = gaussian(),
 #            data = ring_data)
 
-glm3 <- glm(Beak ~ Strategy,
+glm2 <- glm(Beak ~ Strategy,
             family = gaussian(),
             data = ring_data)
 
@@ -347,22 +347,22 @@ glm3 <- glm(Beak ~ Strategy,
 #            family = gaussian(),
 #            data = ring_data)
 
-model.sel(glm1, glm3)
+model.sel(glm1, glm2)
 # Extract residuals
-res_glm3 <- residuals(glm3)
+res_glm3 <- residuals(glm2)
 # Q-Q plot
-qqnorm(res_glm3)
-qqline(res_glm3, col = "red", lwd = 2)
+qqnorm(res_glm2)
+qqline(res_glm2, col = "red", lwd = 2)
 # Histogram
-hist(res_glm3, breaks = 30, main = "Residual Histogram", xlab = "Residuals")
+hist(res_glm2, breaks = 30, main = "Residual Histogram", xlab = "Residuals")
 
 # Shapiro-Wilk test (for small samples)
-shapiro.test(res_glm3)
+shapiro.test(res_glm2)
 
 library(emmeans)
 
 # Compute emmeans
-emm_beak <- emmeans(glm3, ~ Strategy, type = "response")
+emm_beak <- emmeans(glm2, ~ Strategy, type = "response")
 
 library(multcomp)
 

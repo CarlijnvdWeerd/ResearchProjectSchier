@@ -91,6 +91,13 @@ filtered_data <- filtered_data %>%
   ungroup() %>%
   mutate(bird_code = reorder(bird_code, -first_seen_after_184))  # <--- negative sign flips the order
 
+#filter birds that only had observations that are south_ward_migration in the filtered_data
+filtered_data <- filtered_data |>
+  group_by(bird_code) |>  # change to the actual bird ID column if different
+  mutate(unique_categories = n_distinct(category)) |>
+  filter(!(all(category == "southward_migration") & unique_categories == 1)) |>
+  ungroup()
+
 all_birds <- ggplot(filtered_data, aes(x = day_number, y = bird_code)) +
   geom_point(aes(color = category), size = 5, alpha = 0.9) +
   
