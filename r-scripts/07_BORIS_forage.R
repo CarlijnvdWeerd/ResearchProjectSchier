@@ -221,6 +221,7 @@ p_stage <- ggplot(all_behaviors, aes(x= as.factor(Week), y= Duration_Rate, fill 
       "Walking" = "Walking"
     )) +
   theme_minimal(base_size = 20) +
+  theme(legend.position = "bottom") +
   labs(
     title = "Behaviour by Strategy",
     x = "Week",
@@ -247,6 +248,7 @@ p_point <- ggplot(point_behaviors, aes(x = as.factor(Week), y = Behavior_Rate, f
                       "Surface_pecking" = "Surface Pecking",
                       "Swallowing" = "Swallowing")) +
   theme_minimal(base_size = 20) +
+  theme(legend.position = "bottom") +
   labs(
     title = "Behaviour by Strategy",
     x = "Week",
@@ -257,6 +259,53 @@ p_point
 ggsave("behaviors_by_strategy_point.png", plot = p_point, width = 16, height = 10)
 
 p_all <- p_stage + p_point + plot_layout(ncol = 1)
+p_all
+
+# I want to rename the Duration_Rate of stage_behavior to Behavior_Rate
+all_behaviors <- all_behaviors |>
+  rename(Behavior_Rate = Duration_Rate)
+
+# I want to add point_behaviors to all_behaviors via rowbind
+all_behaviors <- all_behaviors %>%
+  bind_rows(
+    point_behaviors %>%
+      dplyr::select(Observation_id, Behavior, Behavior_Rate, Week,    
+                    Three_letter_code, Tide, Habitat, Social_behavior,
+                    Aggressive.or.submissive, Strategy, Transect_ID, Date.x)
+  )
+
+all_behaviors$Behavior <- factor(all_behaviors$Behavior, levels = c( "Alert", "Digging", "Routing", "Walking", "Handling_prey", "Swallowing", "Surface_pecking", "Probing", "visually_foraging"))
+
+p_all <- ggplot(all_behaviors, aes(x = as.factor(Week), y = Behavior_Rate, fill = Behavior)) +
+  geom_bar(stat = "identity", position = "fill") +
+  scale_fill_manual(values = c(
+    "Probing" = "#B2DF89",
+    "Surface_pecking" = "#6ABEEB",
+    "Swallowing" = "#386BAF",
+    "Handling_prey" = "#409E77",
+    "visually_foraging" = "#E8448A",
+    "Alert" = "#756FB3",
+    "Digging" = "#D9602C",
+    "Routing" = "#66A61E",
+    "Walking" = "#E6AC34"
+  ),
+  labels = c(
+    "Probing" = "Probing",
+    "Surface_pecking" = "Surface Pecking",
+    "Swallowing" = "Swallowing",
+    "Handling_prey" = "Handling Prey",
+    "visually_foraging" = "Visually Foraging",
+    "Alert" = "Alert",
+    "Digging" = "Digging",
+    "Routing" = "Routing",
+    "Walking" = "Walking")) +
+  theme_minimal(base_size = 20) +
+  theme(legend.position = "bottom") +
+  labs(
+    title = "Behaviour by Strategy",
+    x = "Week",
+    y = "Relative Time Spend") +
+  facet_wrap(~ Strategy)
 p_all
 
 ggsave("behaviors_by_strategy.png", plot = p_all, width = 16, height = 10)

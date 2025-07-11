@@ -287,6 +287,17 @@ pairs(emm_molt)
 library(multcomp)
 
 cld(emm_molt, Letters = letters, adjust = "tukey")
+# I want a First_Date and Last_Date summarized for each Strategy in the data
+slopes_with_strategy |>
+  group_by(Strategy) |>
+  summarise(
+  Avg_First_Date = mean(First_Date, na.rm = TRUE),
+  Avg_Last_Date = mean(Last_Date, na.rm = TRUE),
+  Count = n_distinct(Three_letter_code)) |>
+  arrange(desc(Count))
+
+
+
 
 ############################################################################
 video_data <- video_data |>
