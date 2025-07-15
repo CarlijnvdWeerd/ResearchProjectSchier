@@ -153,9 +153,18 @@ filtered_data2024_2025 <- filtered_data2024_2025 %>%
   ungroup() %>%
   mutate(bird_code = reorder(bird_code, -first_seen_after_184))  # <--- negative sign flips the order
 
+# Assign right strategy to the Three_letter_code
+filtered_data2024_2025 <- filtered_data2024_2025 |>
+  dplyr::mutate(Strategy = case_when(
+    bird_code %in% c("Of-AUC/R", "Of-CLC/R", "Of-CTC/R", "Of-ECC/R", "Of-JEL/R", "Of-JLT/R", "Of-JNL/R", "Of-JPU/R", "Of-JTN/R", "Of-JYL/R","Of-KJU/R", "Of-KKN/R", "Of-KNP/R", "Of-KPM/R", "Of-KTJ/R", "Of-KXM/R", "Of-LAV/R", "Of-LCP/R", "Of-LCT/R", "Of-LEH/R","Of-LHE/R", "Of-LLM/R", "Of-LLP/R", "Of-LMN/R", "Of-LNJ/R", "Of-LPC/R", "Of-LPE/R", "Of-LPL/R", "Of-PLT/R", "Of-LPT/R", "Of-LTA/R", "Of-LTV/R", "Of-LUC/R", "Of-LYK/R", "Of-MAU/R", "Of-MCH/R", "Of-MCU/R", "Of-MEY/R", "Of-MHN/R", "Of-MKE/R", "Of-MKY/R", "Of-MNN/R", "Of-MPC/R", "Of-MPV/R", "Of-MTJ/R", "Of-MYV/R", "Of-NJM/R", "Of-NJU/R", "Of-NLJ/R", "Of-NNC/R", "Of-NPE/R", "Of-NTV/R", "Of-NUM/R", "Of-NUN/R", "Of-NVK/R", "Of-PAE/R", "Of-PAJ/R", "Of-PAC/R", "Of-PAM/R", "Of-PHN/R", "Of-PKN/R", "Of-PMP/R", "Of-PNL/R", "Of-PPT/R", "Of-PTA/R", "Of-PVA/R", "Of-PXX/R", "Of-PYC/R")  ~ "overwinterer",
+    bird_code %in% c("Of-CCU/R", "Of-HPL/R", "Of-HPV/R", "Of-JAE/R", "Of-JHL/R", "Of-JHM/R", "Of-JHY/R", "Of-JLU/R", "Of-JNN/R", "Of-JTC/R", "Of-JTL/R", "Of-JXM/R", "Of-KCY/R", "Of-KET/R", "Of-KKH/R", "Of-KMC/R", "Of-KMY/R", "Of-KNX/R", "Of-KPH/R", "Of-KTP/R", "Of-KYM/R", "Of-MCV/R", "Of-MJA/R", "Of-NKA/R", "Of-NNP/R", "Of-NUK/R", "Of-PCU/R", "Of-PLA/R", "Of-PNV/R", "Of-PVK/R") ~ "early_northward_migration",
+    bird_code %in% c("Of-AVM/R", "Of-HNW/R", "Of-JCH/R", "Of-JHN/R", "Of-JJJ/R", "Of-JJV/R", "Of-JKM/R", "Of-JLH/R", "Of-JMN/R", "Of-JMU/R", "Of-JNH/R", "Of-JNM/R", "Of-JPX/R", "Of-JVH/R", "Of-JVL/R", "Of-JXN/R", "Of-JXY/R", "Of-KAH/R", "Of-KAX/R", "Of-KCT/R", "Of-KEN/R", "Of-KHE/R", "Of-KHK/R", "Of-KHU/R", "Of-KKM/R", "Of-KKT/R", "Of-KLP/R", "Of-KMT/R", "Of-KMV/R", "Of-KPN/R", "Of-KPU/R", "Of-KTE/R", "Of-KTK/R", "Of-KTN/R", "Of-KTM/R", "Of-KTT/R", "Of-KTV/R", "Of-KUH/R", "Of-KUL/R", "Of-KUX/R", "Of-KVA/R", "Of-KVC/R", "Of-KVH/R", "Of-KVV/R", "Of-KXC/R", "Of-KXV/R", "Of-KYC/R", "Of-LAJ/R", "Of-LCV/R", "Of-LEA/R", "Of-MAC/R", "Of-MCP/R", "Of-MJM/R", "Of-MLC/R", "Of-MXL/R", "Of-NEL/R", "Of-NKE/R", "Of-NLL/R", "Of-NNN/R", "Of-NPA/R", "Of-NPP/R", "Of-NPY/R", "Of-NUU/R", "Of-NXP/R", "Of-NYA/R", "Of-PAA/R", "Of-PHT/R", "Of-PJC/R", "Of-PJU/R", "Of-PLK/R", 
+                    "Of-PXA/R", "Of-PAN/R", "Of-MAT/R", "Of-MCN/R", "Of-PLH/R") ~ "late_northward_migration",
+    TRUE ~ "not_seen_in_2025")) |>
+  filter(!bird_code == "Of-JVY/R")
 
 birds <- ggplot(filtered_data2024_2025, aes(x = day_number, y = bird_code)) +
-  geom_point(aes(color = category), size = 5, alpha = 0.9) +
+  geom_point(aes(color = Strategy), size = 5, alpha = 0.9) +
   
   geom_vline(xintercept = c(31, 184, 289, 315, 381), linetype = "dashed", color = "gray40") +
   
@@ -167,11 +176,9 @@ birds <- ggplot(filtered_data2024_2025, aes(x = day_number, y = bird_code)) +
   
   scale_color_manual(
     values = c(
-      "overwinterers" = "#4DC8F9",
+      "overwinterer" = "#4DC8F9",
       "early_northward_migration" = "#E777F2",
-      "late_northward_migration" = "#4DD2A4",
-      "nonbreeding" = "#FA9F99",
-      "southward_migration" = "#BFC04D"
+      "late_northward_migration" = "#4DD2A4"
     )
   ) +
   
