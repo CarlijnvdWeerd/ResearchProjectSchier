@@ -39,6 +39,8 @@ ggplot(visual, aes(x = visually_foraging)) +
 
 qqnorm(visual$visually_foraging)
 
+shapiro.test(visual$visually_foraging)
+
 # Check for residuals
 ggplot(visual, aes(x = fitted(lm(visually_foraging ~ Strategy, data = visual)), 
                       y = resid(lm(visually_foraging ~ Strategy, data = visual)))) +
@@ -78,117 +80,117 @@ ggplot(visual, aes(x = vf_log_reflected)) +
   ) +
   theme_minimal()
 
+visual <- visual |>
+  filter(!Observation_id == "KMP.16.04")
+
 glm1 <- glm(vf_log_reflected ~ 1 , 
-            family = gaussian(),
+            family = Gamma(link="log"),
             data = visual)
 
 glm2 <- glm(vf_log_reflected ~ Week, 
-            family = gaussian(),
+            family = Gamma(link="log"),
             data = visual)
 
 glm3 <- glm(vf_log_reflected ~ Strategy, 
-            family = gaussian(),
+            family = Gamma(link="log"),
             data = visual)
 
 glm4 <- glm(vf_log_reflected ~ Transect_ID, 
-            family = gaussian(),
+            family = Gamma(link="log"),
            data = visual)
 
 glm5 <- glm(vf_log_reflected ~ Habitat,
-            family = gaussian(),
+            family = Gamma(link="log"),
             data = visual)
 
 glm6 <- glm(vf_log_reflected ~ Tide, 
-            family = gaussian(),
+            family = Gamma(link="log"),
             data = visual)
 
 glmer1 <- glmer(vf_log_reflected ~ Week * Strategy + 
                   (1 | Three_letter_code) + (1 | Habitat) + 
                   (1 | Tide) + (1 | Transect_ID),
-                family = gaussian(),
+                family = Gamma(link="log"),
                 data = visual)
 
 glmer2 <- glmer(vf_log_reflected ~ Week * Strategy + 
           (1 | Habitat) + (1|Tide) + (1 | Transect_ID),
-          family = gaussian(),
+          family = Gamma(link="log"),
                 data = visual)
 
 glmer3 <- glmer(vf_log_reflected ~ Week * Strategy + 
              (1 | Tide) + (1 | Transect_ID), 
-             family = gaussian(),
+             family = Gamma(link="log"),
                 data = visual)
 
 glmer4 <- glmer(vf_log_reflected ~ Week * Strategy + 
                 (1 | Transect_ID) + (1 | Habitat),
-                family = gaussian(),
+                family = Gamma(link="log"),
                 data = visual)
 
 glmer5 <- glmer(vf_log_reflected ~ Week * Strategy + (1 | Tide), 
-                family = gaussian(),
+                family = Gamma(link="log"),
                 data = visual)
 
 glmer6 <- glmer(vf_log_reflected ~ Week * Strategy + (1 | Transect_ID),
-                family = gaussian(),
+                family = Gamma(link="log"),
                 data = visual)
 
 glmer7 <- glmer(vf_log_reflected ~ Week * Strategy + 
                   (1 | Habitat), 
-                family = gaussian(),
+                family = Gamma(link="log"),
                 data = visual)
 
 
-model.sel(glmer1, glmer2, glmer3, glmer4, glmer5, glmer6, glmer7, glm1, glm2, glm3, glm4, glm5, glm6)
+model.sel(glm1, glm2, glm3, glm4, glm5, glm6)
 
-glm7 <- glm(vf_log_reflected ~ Week * Strategy + Habitat,
-            family = gaussian(),
+glm7 <- glm(vf_log_reflected ~ Week * Strategy + Tide,
+            family = Gamma(link="log"),
             data = visual)
 
-glm8 <- glm(vf_log_reflected ~ Week + Habitat,
-            family = gaussian(),
+glm8 <- glm(vf_log_reflected ~ Week + Tide,
+            family = Gamma(link="log"),
             data = visual)
 
-model.sel(glm5, glm7, glm8)
+model.sel(glm6, glm7, glm8)
 
-glm9 <- glm(vf_log_reflected ~ Week + Habitat + Strategy,
-            family = gaussian(),
+glm9 <- glm(vf_log_reflected ~ Week + Tide + Strategy,
+            family = Gamma(link="log"),
             data = visual)
 
 glm10 <- glm(vf_log_reflected ~ Week * Strategy,
-             family = gaussian(),
+             family = Gamma(link="log"),
              data = visual)
 
-model.sel(glm8, glm9, glm10)
+model.sel(glm6, glm9, glm10)
 
 plot(residuals(glm9))
 
-glm11<- glm(vf_log_reflected ~ Week + Habitat + Strategy, 
-            family = gaussian(),
+glm11 <- glm(vf_log_reflected ~ Week * Strategy * Tide, 
+             family = Gamma(link="log"),
              data = visual)
 
-glm12 <- glm(vf_log_reflected ~ Week * Strategy * Habitat, 
-             family = gaussian(),
-             data = visual)
-model.sel(glm10, glm11, glm12, glm9)
+model.sel(glm6, glm11)
 
 
-glm13 <- glm(vf_log_reflected ~ poly(Week, 2) * Strategy + Habitat,
-             family = gaussian(),
+glm12 <- glm(vf_log_reflected ~ poly(Week, 2) * Strategy + Tide,
+             family = Gamma(link="log"),
                 data = visual)
-summary(glm13)
+summary(glm12)
 
-glm14 <- glm(vf_log_reflected ~ splines::ns(Week, df = 4) * Strategy + Habitat,
-             family = gaussian(),
+glm13 <- glm(vf_log_reflected ~ splines::ns(Week, df = 4) * Strategy
+             + Tide,
+             family = Gamma(link="log"),
                   data = visual)
 
-model.sel(glm9, glm13, glm14)
+model.sel(glm6, glm12, glm13)
 
-glm15 <- glm(vf_log_reflected ~ Habitat * Strategy + Week, 
-             family = gaussian(),
+glm14 <- glm(vf_log_reflected ~ Tide * Strategy + Week, 
+             family = Gamma(link="log"),
               data = visual)
 
 
-model.sel(glm9, glm13, glm15)
-model_selection <-model.sel(glmer1, glmer2, glmer3, glmer4, glmer5, glmer6, glmer7, glm1, glm2, glm3, glm4, glm5, glm6, glm7, glm8, glm9, glm10, glm11, glm12, glm13, glm15)
+model_selection <-model.sel(glm1, glm2, glm3, glm4, glm5, glm6, glm7, glm8, glm9, glm10, glm11, glm12, glm13, glm14)
 model_selection
 
 # Load necessary package

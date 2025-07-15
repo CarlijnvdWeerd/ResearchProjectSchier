@@ -13,6 +13,8 @@ complete_dataset <- boris_data |>
 ## All time columns to numberic 
 complete_dataset$Observation.duration <- as.numeric(complete_dataset$Observation.duration)
 complete_dataset$Media.duration..s. <- as.numeric(complete_dataset$Media.duration..s.)
+complete_dataset <- complete_dataset |>
+  mutate(Media.duration..s. = 120)
 
 # Check for outliers
 ggplot(complete_dataset, aes(x = Observation.duration)) +
@@ -72,7 +74,7 @@ durations <- left_join(starts, stops,
 # Calculate the point behaviours
 behaviors <- complete_dataset |>
   filter(Behavior.type == "POINT") |>
-  mutate(Duration = 0.1)
+  mutate(Duration = 0.5)
 
 # Calculate the duration
 durations <- durations |>
@@ -136,7 +138,7 @@ behaviors <- behaviors |>
                                  total_duration), gap_time = Media.duration..s. - total_duration) |>
   rename(visually_foraging = gap_time) 
 behaviors <- behaviors |>
-  mutate(visually_foraging = visually_foraging / Media.duration..s.)
+  mutate(visually_foraging = pmax(visually_foraging / Media.duration..s., 0))
 
 all_behaviors <- stage_behavior %>% 
   bind_rows(
@@ -275,6 +277,11 @@ all_behaviors <- all_behaviors %>%
   )
 
 all_behaviors$Behavior <- factor(all_behaviors$Behavior, levels = c( "Alert", "Digging", "Routing", "Walking", "Handling_prey", "Swallowing", "Surface_pecking", "Probing", "visually_foraging"))
+
+all_behaviors <- all_behaviors |>
+  filter(!Week %in% c("9", "11", "12", "13", "15")) 
+
+
 
 p_all <- ggplot(all_behaviors, aes(x = as.factor(Week), y = Behavior_Rate, fill = Behavior)) +
   geom_bar(stat = "identity", position = "fill") +
