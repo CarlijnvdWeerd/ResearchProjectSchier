@@ -117,8 +117,39 @@ ggplot(molt_data, aes(x = Date, y = Molting_score, color = Strategy)) +
   theme(legend.position = "bottom")
 
 slopes_with_strategy <- slopes_with_strategy |>
-  group_by(Strategy) |>
-  mutate(Molting_score =  2)
+  group_by(Strategy) 
+
+slopes_with_strategy$y_position <- recode(slopes_with_strategy$Strategy,
+                                          "overwinterer" = 1.2,
+                                          "early_northward_migration" = 1.5,
+                                          "late_northward_migration" = 1.8)
+
+slopes_with_strategy$y2_position <- recode(slopes_with_strategy$Strategy,
+                                          "overwinterer" = 4.5,
+                                          "early_northward_migration" = 4.2,
+                                          "late_northward_migration" = 3.9)
+
+slopes_with_strategy$fake_date <- as.Date("2025-03-07")
+
+label_data <- data.frame(
+  Strategy = c("early_northward_migration", "late_northward_migration", "overwinterer"),
+  y_position = c(2.7, 4.5, 3.1),  # Match the same y used in boxplot placement
+  Date = as.Date(c("2025-03-03", "2025-03-07", "2025-03-11")),  # or use median values per group
+  label = c("a", "b", "ab")
+)
+
+label_data_first <- data.frame(
+  Strategy = c("early_northward_migration", "late_northward_migration", "overwinterer"),
+  y_position = c(1.8, 1.5, 2.1),  
+  First_Date = as.Date(c("2025-03-28", "2025-04-08", "2025-04-17")),  
+  label = c("a", "b", "b"))
+
+label_date_last <- data.frame(
+  Strategy = c("early_northward_migration", "late_northward_migration", "overwinterer"),
+  y2_position = c(4.5, 4.2, 4.8),  
+  Last_Date = as.Date(c("2025-05-01", "2025-05-11", "2025-05-16")),  
+  label = c("a", "b", "b"))
+
 
 
 p_molt <- ggplot(molt_data, aes(x = Date, y = Molting_score, color = Strategy, group = Three_letter_code)) +
@@ -138,11 +169,43 @@ p_molt <- ggplot(molt_data, aes(x = Date, y = Molting_score, color = Strategy, g
     plot.title = element_text(size = 26, face = "bold", hjust = 0.5),
     legend.position = "none") +
   geom_boxplot(data = slopes_with_strategy,
-               mapping = aes(x = First_Date, y = Molting_score, fill = Strategy),
-               alpha = 0.2, outlier.shape = NA, width = 0.5)
+               mapping = aes(x = First_Date, y = y_position, 
+                             group = Strategy,
+                             fill = Strategy),
+               alpha = 0.9, outlier.shape = NA,
+               width = 0.2) +
+  scale_fill_manual(values = c("#904a96", "#2d8062", "#3487a8")) +
+  geom_boxplot(data = slopes_with_strategy,
+               mapping = aes(x = Last_Date, y = y2_position, 
+                             group = Strategy,
+                             fill = Strategy),
+               alpha = 0.9, outlier.shape = NA,
+               width = 0.2)  +
+  geom_boxplot(data = slopes_with_strategy,
+               aes(x = fake_date, y = Slope * 22, fill = Strategy, 
+                   group = Strategy),
+               width = 10, alpha = 0.7, outlier.shape = NA, position = position_dodge(width = 12))
 p_molt
 
-ggsave("moult_rate.png", plot = p_molt, width = 28, height = 15, dpi = 300)
+p_stat_molt <- p_molt +
+  geom_text(data = label_data,
+            aes(x = Date, y = y_position, label = label), 
+            size = 9,
+            fontface = "bold",
+            inherit.aes = FALSE) +
+  geom_text(data = label_data_first,
+            aes(x = First_Date, y = y_position, label = label),
+            size = 9,
+            fontface = "bold",
+            inherit.aes = FALSE) +
+  geom_text(data = label_date_last,
+            aes(x = Last_Date, y = y2_position, label = label),
+            size = 9,
+            fontface = "bold",
+            inherit.aes = FALSE) 
+
+
+ggsave("moult_rate.png", plot = p_stat_molt, width = 28, height = 15, dpi = 300)
 
 ###########################################################################
 ## Need to make a new dataframe and not use video_data, because removed the birds that did not moult
@@ -296,7 +359,65 @@ slopes_with_strategy |>
   Count = n_distinct(Three_letter_code)) |>
   arrange(desc(Count))
 
+# Convert dates to numeric (e.g., days since Jan 1st)
+slopes_with_strategy$numeric_date <- as.numeric(slopes_with_strategy$First_Date)
 
+# Then apply Shapiro-Wilk test per strategy
+shapiro.test(slopes_with_strategy$numeric_date)
+
+
+ggplot(slopes_with_strategy, aes(x = numeric_date)) +
+  geom_histogram(bins = 30, fill = "#69b3a2", color = "black") +
+  theme_minimal()
+
+
+
+glm1 <- glm(numeric_date ~ 1,
+          data = slopes_with_strategy,
+          family = Gamma(link = "log"))
+
+glm2 <- glm(numeric_date ~ Strategy,
+          data = slopes_with_strategy,
+          family = Gamma(link = "log"))
+summary(glm2)
+
+AIC(glm1, glm2)
+model.sel(glm1, glm2)
+
+emm_first <- emmeans(glm2, ~ Strategy)
+print(emm_first)
+cld_first <- cld(emm_first, adjust = "tukey", Letters = letters, type = "response")
+print(cld_first)
+
+# Convert dates to numeric (e.g., days since Jan 1st)
+slopes_with_strategy$numeric_last_date <- as.numeric(slopes_with_strategy$Last_Date)
+
+# Then apply Shapiro-Wilk test per strategy
+shapiro.test(slopes_with_strategy$numeric_last_date)
+
+
+ggplot(slopes_with_strategy, aes(x = numeric_last_date)) +
+  geom_histogram(bins = 30, fill = "#69b3a2", color = "black") +
+  theme_minimal()
+
+
+
+glm1 <- glm(numeric_last_date ~ 1,
+            data = slopes_with_strategy,
+            family = Gamma(link = "log"))
+
+glm2 <- glm(numeric_last_date ~ Strategy,
+            data = slopes_with_strategy,
+            family = Gamma(link = "log"))
+summary(glm2)
+
+AIC(glm1, glm2)
+model.sel(glm1,glm2)
+
+emm_first <- emmeans(glm2, ~ Strategy)
+print(emm_first)
+cld_first <- cld(emm_first, adjust = "tukey", Letters = letters, type = "response")
+print(cld_first)
 
 
 ############################################################################
@@ -400,6 +521,162 @@ pairs(emm_fat)
 library(multcomp)
 
 cld(emm_fat, Letters = letters, adjust = "tukey")
+
+# I want to calculate the mean of the slope per strategy
+mean_slopes <- fatslopes_with_strategy %>%
+  group_by(Strategy) %>%
+  summarise(mean_slope = mean(Slope, na.rm = TRUE)) %>%
+  ungroup()
+
+# I want to calculate the SE of the last observation date per strategy
+se_slopes <- fatslopes_with_strategy %>%
+  group_by(Strategy) %>%
+  summarise(se_slope = sd(Slope, na.rm = TRUE) / sqrt(n())) %>%
+  ungroup()
+
+
+fatslopes_with_strategy <- fatslopes_with_strategy |>
+  group_by(Strategy) 
+
+fatslopes_with_strategy$y_position <- recode(fatslopes_with_strategy$Strategy,
+                                          "overwinterer" = 1.2,
+                                          "early_northward_migration" = 1.5,
+                                          "late_northward_migration" = 1.8)
+
+fatslopes_with_strategy$y2_position <- recode(fatslopes_with_strategy$Strategy,
+                                           "overwinterer" = 4.5,
+                                           "early_northward_migration" = 4.2,
+                                           "late_northward_migration" = 3.9)
+
+fatslopes_with_strategy$fake_date <- as.Date("2025-03-07")
+
+fat_label_data <- data.frame(
+  Strategy = c("early_northward_migration", "late_northward_migration", "overwinterer"),
+  y_position = c(3.0, 3.4, 3.5),  # Match the same y used in boxplot placement
+  Date = as.Date(c("2025-03-03", "2025-03-07", "2025-03-11")),  # or use median values per group
+  label = c("ab", "a", "b")
+)
+
+fat_label_data_first <- data.frame(
+  Strategy = c("early_northward_migration", "late_northward_migration", "overwinterer"),
+  y_position = c(1.7, 1.4, 2.0),  
+  First_Date = as.Date(c("2025-04-01", "2025-04-08", "2025-04-20")),  
+  label = c("a", "ab", "b"))
+
+fat_label_date_last <- data.frame(
+  Strategy = c("early_northward_migration", "late_northward_migration", "overwinterer"),
+  y2_position = c(4.4, 4.1, 4.7),  
+  Last_Date = as.Date(c("2025-05-07", "2025-05-16", "2025-05-17")),  
+  label = c("a", "ab", "b"))
+
+p_fat<-ggplot(video_data, aes(x = Date, y = Fat_score, color = Strategy, group = Three_letter_code)) +
+  geom_line(alpha = 0.5) +  # individual bird lines, faint
+  geom_point(alpha = 0.5) +
+  geom_smooth(aes(group = Strategy), se = FALSE, method = "loess", size = 1.5) +
+  scale_color_manual(values = c("#E777F2", "#4DD2A4", "#4DC8F9")) +
+  labs(title = "Fat Scores of Birds with Smoothed Strategy Trends",
+       x = "Date",
+       y = "Fat Score") +
+  theme_minimal()  +
+  theme(
+    axis.text.x = element_text(size = 21),
+    axis.text.y = element_text(size = 21),
+    axis.title.x = element_text(size = 23),
+    axis.title.y = element_text(size = 23),
+    plot.title = element_text(size = 26, face = "bold", hjust = 0.5),
+    legend.position = "none") +
+ geom_boxplot(data = fatslopes_with_strategy,
+             mapping = aes(x = First_Date, y = y_position, 
+                           group = Strategy,
+                           fill = Strategy),
+             alpha = 0.9, outlier.shape = NA,
+             width = 0.1) +
+  scale_fill_manual(values = c("#904a96", "#2d8062", "#3487a8")) +
+  geom_boxplot(data = fatslopes_with_strategy,
+               mapping = aes(x = Last_Date, y = y2_position, 
+                             group = Strategy,
+                             fill = Strategy),
+               alpha = 0.9, outlier.shape = NA,
+               width = 0.1)  +
+  geom_boxplot(data = fatslopes_with_strategy,
+               aes(x = fake_date, y = Slope * 10 + 2, fill = Strategy, 
+                   group = Strategy),
+               width = 10, alpha = 0.7, outlier.shape = NA, position = position_dodge(width = 12))
+p_fat
+
+p_stat_fat <- p_fat +
+  geom_text(data = fat_label_data,
+            aes(x = Date, y = y_position, label = label), 
+            size = 9,
+            fontface = "bold",
+            inherit.aes = FALSE) +
+  geom_text(data = fat_label_data_first,
+            aes(x = First_Date, y = y_position, label = label),
+            size = 9,
+            fontface = "bold",
+            inherit.aes = FALSE) +
+  geom_text(data = fat_label_date_last,
+            aes(x = Last_Date, y = y2_position, label = label),
+            size = 9,
+            fontface = "bold",
+            inherit.aes = FALSE) 
+p_stat_fat
+
+# Convert dates to numeric (e.g., days since Jan 1st)
+fatslopes_with_strategy$numeric_first_date <- as.numeric(fatslopes_with_strategy$First_Date)
+
+# Then apply Shapiro-Wilk test per strategy
+shapiro.test(fatslopes_with_strategy$numeric_first_date)
+
+
+ggplot(fatslopes_with_strategy, aes(x = numeric_first_date)) +
+  geom_histogram(bins = 30, fill = "#69b3a2", color = "black") +
+  theme_minimal()
+
+lm1 <- lm(numeric_first_date ~ 1,
+            data = fatslopes_with_strategy)
+
+lm2 <- lm(numeric_first_date ~ Strategy,
+            data = fatslopes_with_strategy)
+summary(lm2)
+
+AIC(lm1, lm2)
+model.sel(lm1, lm2)
+
+emm_first <- emmeans(lm2, ~ Strategy)
+print(emm_first)
+cld_first <- cld(emm_first, adjust = "tukey", Letters = letters, type = "response")
+print(cld_first)
+
+# Convert dates to numeric (e.g., days since Jan 1st)
+fatslopes_with_strategy$numeric_last_date <- as.numeric(fatslopes_with_strategy$Last_Date)
+
+# Then apply Shapiro-Wilk test per strategy
+shapiro.test(fatslopes_with_strategy$numeric_last_date)
+
+
+ggplot(fatslopes_with_strategy, aes(x = numeric_last_date)) +
+  geom_histogram(bins = 30, fill = "#69b3a2", color = "black") +
+  theme_minimal()
+
+glm1 <- glm(numeric_last_date ~ 1,
+          data = fatslopes_with_strategy,
+          family = Gamma(link = "log"))
+
+glm2 <- glm(numeric_last_date ~ Strategy,
+          data = fatslopes_with_strategy,
+          family = Gamma(link = "log"))
+summary(glm2)
+
+AIC(glm1, glm2)
+model.sel(glm1, glm2)
+
+emm_last <- emmeans(glm2, ~ Strategy)
+print(emm_last)
+cld_last <- cld(emm_last, adjust = "tukey", Letters = letters, type = "response")
+print(cld_last)
+
+ggsave("fat_rate.png", plot = p_stat_fat, width = 28, height = 15, dpi = 300)
 
 video_data |>
   group_by(Strategy) 
