@@ -331,11 +331,14 @@ summary(lm7)
 lm8 <- lm(Slope_sqrt ~ Last_Date * Strategy ,
             data = moult)
 
-moult.model <- model.sel(lm1, lm2, lm3, lm4, lm5, lm6, lm8)
+lm9 <- lm(Slope_sqrt ~ Last_Date + Strategy,
+            data = moult)
+
+moult.model <- model.sel(lm1, lm2, lm3, lm4, lm5, lm6, lm8, lm9)
 anova(lm3, lm4, lm5, lm6, lm7, lm8, test = "Chisq")
 moult.model
 
-plot(lm8)
+plot(lm9)
 
 install.packages("car") 
 library(car)
@@ -345,7 +348,7 @@ vif(lm7)
 vif(lm8, type = "predictor")
 # but this one is probably better
 
-emm_molt <- emmeans(lm8, ~ Strategy, type = "response")
+emm_molt <- emmeans(lm9, ~ Strategy, type = "response")
 pairs(emm_molt)
 library(multcomp)
 
@@ -418,6 +421,27 @@ emm_first <- emmeans(glm2, ~ Strategy)
 print(emm_first)
 cld_first <- cld(emm_first, adjust = "tukey", Letters = letters, type = "response")
 print(cld_first)
+
+# I want the average moult_score on the first_date
+slopes_with_strategy |>
+  group_by(Strategy) |>
+  summarise(
+    Avg_First_Score = mean(First_Score, na.rm = TRUE),
+    Avg_Last_Score = mean(Last_Score, na.rm = TRUE),
+    Count = n_distinct(Three_letter_code)) |>
+  arrange(desc(Count))
+
+
+# I want the mean first_date and last_date
+slopes_with_strategy |>
+  group_by(Strategy) |>
+  summarise(
+    Avg_First_Date = mean(First_Date, na.rm = TRUE),
+    Avg_Last_Date = mean(Last_Date, na.rm = TRUE),
+    Count = n_distinct(Three_letter_code)) |>
+  arrange(desc(Count))
+
+
 
 
 ############################################################################
@@ -680,6 +704,16 @@ ggsave("fat_rate.png", plot = p_stat_fat, width = 28, height = 15, dpi = 300)
 
 video_data |>
   group_by(Strategy) 
+# I want the mean of first and last date of the fat score per strategy
+fatslopes_with_strategy |>
+  group_by(Strategy) |>
+  summarise(
+    Avg_First_Date = mean(First_Date, na.rm = TRUE),
+    Avg_Last_Date = mean(Last_Date, na.rm = TRUE),
+    Count = n_distinct(Three_letter_code)) |>
+  arrange(desc(Count))
+
+
 # I want to know how many of every strategy are present in the df video_data
 video_data |>
   group_by(Strategy) |>
